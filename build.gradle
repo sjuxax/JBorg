@@ -1,0 +1,13 @@
+apply plugin: 'java'
+
+sourceCompatibility = 1.8
+version = '1.0'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile 'net.schmizz:sshj:0.10.0'
+    testCompile "junit:junit:4.11"
+}

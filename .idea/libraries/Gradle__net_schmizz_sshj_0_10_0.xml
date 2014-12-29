@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="Gradle: net.schmizz:sshj:0.10.0">
+    <CLASSES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/net.schmizz/sshj/0.10.0/35d313db208a25189962266a9bd36553310c65f6/sshj-0.10.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$USER_HOME$/.gradle/caches/modules-2/files-2.1/net.schmizz/sshj/0.10.0/b9d3fb4be808f6404a4fbf46c68852a23d2a9aaa/sshj-0.10.0-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>
