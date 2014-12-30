@@ -8,6 +8,7 @@ repositories {
 }
 
 dependencies {
+    compile 'org.apache.commons.io:2.4'
     compile 'net.schmizz:sshj:0.10.0'
     testCompile "junit:junit:4.11"
 }

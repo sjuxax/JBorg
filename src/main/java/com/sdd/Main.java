@@ -5,12 +5,12 @@ import net.schmizz.sshj.common.IOUtils;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Session.Command;
 
-import java.io.File;
+import javax.script.ScriptException;
 import java.io.IOException;
+import java.io.File;
 import java.util.concurrent.TimeUnit;
 
 public class Main {
-
 	public static void main(String[] args) throws IOException {
 		System.out.println("Java can do "+ANSIColor.yellow+"colors"+ANSIColor.reset+", too! :)");
 
@@ -34,5 +34,15 @@ public class Main {
 		}
 
 		System.out.println("Java can connect over SSH, too!");
+
+
+		CoffeeSipper cs = new CoffeeSipper();
+		try {
+			String s = cs.toJs("a = b: c: 1");
+			System.out.println(s);
+			System.out.println("Java can compile CSON, too!");
+		} catch (ScriptException e) {
+			System.out.println(e.toString());
+		}
 	}
 }
