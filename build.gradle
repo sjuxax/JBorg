@@ -1,4 +1,5 @@
 apply plugin: 'java'
+apply plugin: 'idea'
 
 sourceCompatibility = 1.8
 version = '1.0'
@@ -8,7 +9,8 @@ repositories {
 }
 
 dependencies {
-    compile 'org.apache.commons.io:2.4'
+    compile 'commons-io:commons-io:2.4'
     compile 'net.schmizz:sshj:0.10.0'
+    compile 'com.amazonaws:aws-java-sdk:1.10.5.1'
     testCompile "junit:junit:4.11"
 }
