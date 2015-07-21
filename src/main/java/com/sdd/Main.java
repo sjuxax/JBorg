@@ -10,26 +10,34 @@ import java.io.IOException;
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 
-public class Main {
-	public static void main(String[] args) throws IOException {
-		System.out.println("Java can do "+ANSIColor.yellow+"colors"+ANSIColor.reset+", too! :)");
+public class Main
+{
+	public static void main(String[] args) throws IOException
+	{
+		System.out.println("Java can do " + ANSIColor.YELLOW + "colors" + ANSIColor.RESET + ", too! :)");
 
 
 		final SSHClient ssh = new SSHClient();
 		ssh.loadKnownHosts();
 		ssh.connect("smullin.org", 22);
-		try {
+		try
+		{
 			ssh.authPublickey("msmullin", System.getProperty("user.home") + File.separator + ".ssh" + File.separator + "id_rsa");
 			final Session session = ssh.startSession();
-			try {
+			try
+			{
 				final Command cmd = session.exec("ping -c 1 google.com");
 				System.out.println(IOUtils.readFully(cmd.getInputStream()).toString());
 				cmd.join(5, TimeUnit.SECONDS);
 				System.out.println("\n** exit status: " + cmd.getExitStatus());
-			} finally {
+			}
+			finally
+			{
 				session.close();
 			}
-		} finally {
+		}
+		finally
+		{
 			ssh.disconnect();
 		}
 
@@ -37,11 +45,14 @@ public class Main {
 
 
 		CoffeeSipper cs = new CoffeeSipper();
-		try {
+		try
+		{
 			String s = cs.toJs("a = b: c: 1");
 			System.out.println(s);
 			System.out.println("Java can compile CSON, too!");
-		} catch (ScriptException e) {
+		}
+		catch (ScriptException e)
+		{
 			System.out.println(e.toString());
 		}
 	}
