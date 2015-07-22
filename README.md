@@ -1,21 +1,15 @@
-### Pre-requisite
+### Requirements
 
-You must have Java 8u25 installed and available in the PATH, already.
+Have Java 8u25 installed and in PATH.
 
-### Installing Gradle
+### Install on Linux
 
 ```bash
-sudo -i
-cd /opt
-wget https://services.gradle.org/distributions/gradle-2.2.1-bin.zip
-unzip gradle-2.2.1-bin.zip
-rm -f gradle-2.2.1-bin.zip
-ln -s /opt/gradle-2.2.1/bin/gradle /usr/local/bin/gradle
-gradle -v
+./gradlew
 ```
 
-### Using Gradle to install all other dependencies
+### Install on Windows
 
 ```bash
-gradle
+gradlew
 ```
