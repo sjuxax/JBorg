@@ -1,15 +1,23 @@
 ### Requirements
 
-Have Java 8u25 installed and in PATH.
+Java 8 installed and in PATH.
 
-### Install on Linux
+### Installation
+
+#### Linux
 
 ```bash
 ./gradlew
 ```
-
-### Install on Windows
+#### Windows
 
 ```bash
-gradlew
+gradlew.bat
+```
+
+#### Windows (via Cygwin)
+
+```bash
+export JAVA_HOME=/cygdrive/c/Progra~1/Java/jdk1.8.0_45
+./gradlew
 ```
