@@ -1,4 +1,4 @@
-package com.sdd.util;
+package com.sdd.jborg.util;
 
 import org.json.JSONArray;
 import org.json.JSONException;

@@ -1,9 +1,8 @@
-package com.sdd.util;
+package com.sdd.jborg.util;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-// TODO: make this our centralized logging system - phase III
 public abstract class Logger
 {
 	private static final SimpleDateFormat PREFERRED_TS_FORMAT = new SimpleDateFormat("HH:mm:ss.SSS ");

@@ -1,4 +1,4 @@
-package com.sdd.util;
+package com.sdd.jborg.util;
 
 public interface Callback0 {
 	void call();

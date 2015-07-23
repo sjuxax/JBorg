@@ -1,6 +1,6 @@
 package com.sdd.jborg;
 
-import com.sdd.util.Callback0;
+import com.sdd.jborg.util.Callback0;
 
 import java.util.ArrayDeque;
 import java.util.Queue;
