@@ -1,6 +1,7 @@
 package com.sdd.jborg;
 
 import com.sdd.jborg.cloud.Aws;
+import com.sdd.jborg.util.JsonObject;
 import org.reflections.Reflections;
 
 import java.util.Set;
@@ -9,7 +10,7 @@ import java.util.regex.Pattern;
 
 public class Main
 {
-	//public static final Networks networks = loadNetworks();
+	public static final JsonObject networks = CoffeeScript.readCsonFileToJsonObject("networks.coffee");
 	public static Ssh ssh;
 
 	public static void main(String[] args)
@@ -26,30 +27,18 @@ public class Main
 				script.assimilate(); // loop 1
 
 				ssh = new Ssh();
-				ssh.connect("smullin.org", 22, "msmullin", "id_rsa");
+				final JsonObject networksSsh = networks.getObject("ssh");
+				ssh.connect(
+					networksSsh.getString("host"),
+					networksSsh.getInteger("port"),
+					networksSsh.getString("user"),
+					networksSsh.getString("key")
+				);
 				//ssh.cmd("ping -c 1 google.com");
 
 				AsyncFlowControl.go(); // loop 2
 				break;
 		}
-	}
-
-	private static Networks loadNetworks()
-	{
-		final Set<Class<? extends Networks>> networks = reflections.getSubTypesOf(Networks.class);
-		try
-		{
-			return networks.iterator().next().newInstance();
-		}
-		catch (InstantiationException e)
-		{
-			e.printStackTrace();
-		}
-		catch (IllegalAccessException e)
-		{
-			e.printStackTrace();
-		}
-		return null;
 	}
 
 	private static void create()
@@ -111,19 +100,4 @@ public class Main
 			Server.tld = m.group(7);
 		}
 	}
-
-//	public static void oldmain(String[] args) throws IOException
-//	{
-//		CoffeeSipper cs = new CoffeeSipper();
-//		try
-//		{
-//			String s = cs.toJs("a = b: c: 1");
-//			System.out.println(s);
-//			System.out.println("Java can compile CSON, too!");
-//		}
-//		catch (ScriptException e)
-//		{
-//			System.out.println(e.toString());
-//		}
-//	}
 }

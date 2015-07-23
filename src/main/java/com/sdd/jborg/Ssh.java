@@ -6,6 +6,7 @@ import net.schmizz.sshj.common.IOUtils;
 import net.schmizz.sshj.connection.ConnectionException;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.transport.TransportException;
+import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.userauth.UserAuthException;
 
 import java.io.File;
@@ -21,33 +22,36 @@ public class Ssh
 		try
 		{
 			final SSHClient ssh = new SSHClient();
-			ssh.loadKnownHosts();
+			// just accept any remote host fingerprint;
+			// they will almost always be new to us here
+			ssh.addHostKeyVerifier(new PromiscuousVerifier());
+			//ssh.loadKnownHosts();
 			ssh.connect(host, port);
 			try
 			{
 				ssh.authPublickey(user, System.getProperty("user.home") + File.separator + ".ssh" + File.separator + key);
 				session = ssh.startSession();
 			}
-			finally
+			catch (ConnectionException e)
 			{
-				ssh.disconnect();
+				e.printStackTrace();
+				close();
 			}
-		}
-		catch (UserAuthException e)
-		{
-			e.printStackTrace();
-		}
-		catch (ConnectionException e)
-		{
-			e.printStackTrace();
-		}
-		catch (TransportException e)
-		{
-			e.printStackTrace();
+			catch (UserAuthException e)
+			{
+				e.printStackTrace();
+				close();
+			}
+			catch (TransportException e)
+			{
+				e.printStackTrace();
+				close();
+			}
 		}
 		catch (IOException e)
 		{
 			e.printStackTrace();
+			close();
 		}
 	}
 
