@@ -1,4 +1,4 @@
-package com.sdd;
+package com.sdd.jborg;
 
 import com.sdd.util.Callback0;
 
@@ -9,12 +9,12 @@ public class AsyncFlowControl
 {
 	private static Queue<Callback0> queue = new ArrayDeque<>();
 
-	public static void Then(Callback0 cb)
+	public static void then(Callback0 cb)
 	{
 		queue.add(cb);
 	}
 
-	public static void Go()
+	public static void go()
 	{
 		while (queue.size() > 0)
 		{

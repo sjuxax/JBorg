@@ -1,18 +1,46 @@
-package com.sdd;
+package com.sdd.jborg;
 
+import com.sdd.util.JsonObject;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.common.IOUtils;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.connection.channel.direct.Session.Command;
+import org.reflections.Reflections;
 
 import javax.script.ScriptException;
 import java.io.IOException;
 import java.io.File;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class Main
 {
-	public static void main(String[] args) throws IOException
+	public static final JsonObject server = new JsonObject();
+	public static final JsonObject networks = new JsonObject();
+
+	public static void main(String[] args)
+	{
+		Reflections reflections = new Reflections();
+		Set<Class<? extends Script>> scripts = reflections.getSubTypesOf(Script.class);
+
+		for (Class<? extends Script> script : scripts)
+		{
+			try
+			{
+				script.newInstance().match();
+			}
+			catch (InstantiationException e)
+			{
+				e.printStackTrace();
+			}
+			catch (IllegalAccessException e)
+			{
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public static void oldmain(String[] args) throws IOException
 	{
 		System.out.println("Java can do " + ANSIColor.YELLOW + "colors" + ANSIColor.RESET + ", too! :)");
 

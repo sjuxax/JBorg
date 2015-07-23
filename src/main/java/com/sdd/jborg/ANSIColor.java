@@ -1,4 +1,4 @@
-package com.sdd;
+package com.sdd.jborg;
 
 public final class ANSIColor
 {

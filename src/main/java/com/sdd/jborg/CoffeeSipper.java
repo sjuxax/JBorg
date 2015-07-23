@@ -1,4 +1,4 @@
-package com.sdd;
+package com.sdd.jborg;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
