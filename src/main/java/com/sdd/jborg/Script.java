@@ -1,24 +1,38 @@
 package com.sdd.jborg;
 
-import java.util.HashSet;
+import org.reflections.Reflections;
+
 import java.util.Set;
 
 public abstract class Script
 {
-	protected static final Set<Script> REGISTRY = new HashSet<>();
+	private static final Set<Class<? extends Script>> scripts = new Reflections().getSubTypesOf(Script.class);
 
 	public static Script findMatch()
 	{
-		for (final Script script : REGISTRY)
+		for (Class<? extends Script> script : scripts)
 		{
-			if (script.match())
+			try
 			{
-				return script;
+				final Script instance = script.newInstance();
+				if (instance.match())
+				{
+					return instance;
+				}
+			}
+			catch (InstantiationException e)
+			{
+				e.printStackTrace();
+			}
+			catch (IllegalAccessException e)
+			{
+				e.printStackTrace();
 			}
 		}
 		return null;
 	}
 
 	abstract public boolean match();
+
 	abstract public void assimilate();
 }
