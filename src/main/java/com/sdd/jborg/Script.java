@@ -1,7 +1,24 @@
 package com.sdd.jborg;
 
-public interface Script
+import java.util.HashSet;
+import java.util.Set;
+
+public abstract class Script
 {
-	boolean match();
-	void assimilate();
+	protected static final Set<Script> REGISTRY = new HashSet<>();
+
+	public static Script findMatch()
+	{
+		for (final Script script : REGISTRY)
+		{
+			if (script.match())
+			{
+				return script;
+			}
+		}
+		return null;
+	}
+
+	abstract public boolean match();
+	abstract public void assimilate();
 }
