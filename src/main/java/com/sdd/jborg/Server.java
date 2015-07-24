@@ -100,4 +100,9 @@ public final class Server
 	{
 		return meta.getString("tld");
 	}
+
+	public JsonObject getMeta()
+	{
+		return meta;
+	}
 }

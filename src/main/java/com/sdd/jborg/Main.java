@@ -1,11 +1,10 @@
 package com.sdd.jborg;
 
 import com.sdd.jborg.cloud.Aws;
-import com.sdd.jborg.util.JsonObject;
 
 public class Main
 {
-	public static final JsonObject networks = CoffeeScript.readCsonFileToJsonObject("networks.coffee");
+	public static final Networks networks = new Networks(CoffeeScript.readCsonFileToJsonObject("networks.coffee"));
 	public static final Server server = new Server(); // a.k.a. "locals"
 	public static Ssh ssh;
 
@@ -23,12 +22,11 @@ public class Main
 				script.assimilate(); // loop 1
 
 				ssh = new Ssh();
-				final JsonObject networksSsh = networks.getObject("ssh");
 				ssh.connect(
-					networksSsh.getString("host"),
-					networksSsh.getInteger("port"),
-					networksSsh.getString("user"),
-					networksSsh.getString("key")
+					networks.getSshHost(),
+					networks.getSshPort(),
+					networks.getSshUser(),
+					networks.getSshKey()
 				);
 				//ssh.cmd("ping -c 1 google.com");
 
