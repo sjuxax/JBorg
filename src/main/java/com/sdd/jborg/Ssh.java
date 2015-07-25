@@ -4,9 +4,11 @@ import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.common.IOUtils;
 import net.schmizz.sshj.connection.ConnectionException;
 import net.schmizz.sshj.connection.channel.direct.Session;
+import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.TransportException;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.userauth.UserAuthException;
+import net.schmizz.sshj.xfer.FileSystemFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -91,6 +93,34 @@ public class Ssh
 				e.printStackTrace();
 			}
 			catch (ConnectionException e)
+			{
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public void put(final String src, final String dst)
+	{
+		SFTPClient sftp = null;
+		try
+		{
+			sftp = ssh.newSFTPClient();
+			sftp.put(new FileSystemFile(src), dst);
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		finally
+		{
+			try
+			{
+				if (sftp != null)
+				{
+					sftp.close();
+				}
+			}
+			catch (IOException e)
 			{
 				e.printStackTrace();
 			}
