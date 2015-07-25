@@ -1,13 +1,10 @@
 package com.sdd.jborg;
 
 import com.sdd.jborg.cloud.Aws;
+import static com.sdd.jborg.Standard.*;
 
 public class Main
 {
-	public static final Networks networks = new Networks(CoffeeScript.readCsonFileToJsonObject("networks.coffee"));
-	public static final Server server = new Server(); // a.k.a. "locals"
-	public static Ssh ssh;
-
 	public static void main(String[] args)
 	{
 		server.setFqdn(args[1]);
@@ -21,6 +18,7 @@ public class Main
 				final Script script = Script.findMatch();
 				script.assimilate(); // loop 1
 
+				Logger.setHost(networks.getSshHost());
 				ssh = new Ssh();
 				ssh.connect(
 					networks.getSshHost(),
@@ -29,7 +27,7 @@ public class Main
 					networks.getSshKey()
 				);
 
-				AsyncFlowControl.go(); // loop 2
+				go(); // loop 2
 				ssh.close();
 				Logger.info("Assimilation complete.");
 				break;
