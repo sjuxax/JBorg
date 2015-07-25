@@ -11,17 +11,16 @@ import net.schmizz.sshj.userauth.UserAuthException;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.concurrent.TimeUnit;
 
 public class Ssh
 {
-	private Session session;
+	private SSHClient ssh;
 
 	public void connect(final String host, final int port, final String user, final String key)
 	{
 		try
 		{
-			final SSHClient ssh = new SSHClient();
+			ssh = new SSHClient();
 			// just accept any remote host fingerprint;
 			// they will almost always be new to us here
 			ssh.addHostKeyVerifier(new PromiscuousVerifier());
@@ -30,12 +29,6 @@ public class Ssh
 			try
 			{
 				ssh.authPublickey(user, System.getProperty("user.home") + File.separator + ".ssh" + File.separator + key);
-				session = ssh.startSession();
-			}
-			catch (ConnectionException e)
-			{
-				e.printStackTrace();
-				close();
 			}
 			catch (UserAuthException e)
 			{
@@ -57,12 +50,21 @@ public class Ssh
 
 	public void cmd(final String command)
 	{
+		Session session = null;
 		try
 		{
+			session = ssh.startSession();
 			final Session.Command cmd = session.exec(command);
-			Logger.out(IOUtils.readFully(cmd.getInputStream()).toString());
-			cmd.join(5, TimeUnit.SECONDS);
-			Logger.out("\n** exit status: " + cmd.getExitStatus());
+			Logger.stdin(command);
+			cmd.join(); // wait indefinitely for remote process to exit
+			final String stdOut = IOUtils.readFully(cmd.getInputStream()).toString();
+			if (stdOut.length() > 0)
+				Logger.stdout(stdOut);
+			final String stdErr = IOUtils.readFully(cmd.getErrorStream()).toString();
+			if (stdErr.length() > 0)
+				Logger.stderr(stdErr);
+			final int code = cmd.getExitStatus();
+			Logger.info("remote process exit code: " + code);
 		}
 		catch (ConnectionException e)
 		{
@@ -78,7 +80,21 @@ public class Ssh
 		}
 		finally
 		{
-			close();
+			try
+			{
+				if (session != null)
+				{
+					session.close();
+				}
+			}
+			catch (TransportException e)
+			{
+				e.printStackTrace();
+			}
+			catch (ConnectionException e)
+			{
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -86,10 +102,11 @@ public class Ssh
 	{
 		try
 		{
-			session.close();
+			ssh.disconnect();
 		}
-		catch( ConnectionException|TransportException e)
+		catch (IOException e)
 		{
+			e.printStackTrace();
 		}
 	}
 }

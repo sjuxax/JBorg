@@ -26,6 +26,6 @@ public class Aws
 		RunInstancesResult runInstancesResult =
 			ec2Client.runInstances(runInstancesRequest);
 
-		Logger.out("done creating new instance.");
+		Logger.info("done creating new instance.");
 	}
 }

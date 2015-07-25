@@ -1,6 +1,7 @@
 package com.sdd.jborg;
 
 import com.sdd.jborg.cloud.Aws;
+import com.sdd.jborg.util.Logger;
 
 public class Main
 {
@@ -28,9 +29,10 @@ public class Main
 					networks.getSshUser(),
 					networks.getSshKey()
 				);
-				//ssh.cmd("ping -c 1 google.com");
 
 				AsyncFlowControl.go(); // loop 2
+				ssh.close();
+				Logger.info("Assimilation complete.");
 				break;
 		}
 	}
