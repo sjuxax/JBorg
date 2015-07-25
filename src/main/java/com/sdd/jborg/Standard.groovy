@@ -1,53 +1,13 @@
-package com.sdd.jborg;
+package com.sdd.jborg
 
-import com.sdd.jborg.util.Callback0;
-import org.reflections.Reflections;
-
-import java.util.ArrayDeque;
-import java.util.Queue;
-import java.util.Set;
+import com.sdd.jborg.util.Callback0
+import org.reflections.Reflections
 
 /**
  * Standard fields and methods every script should have in scope.
  */
 public class Standard
 {
-	/**
-	 * Base Script class all scripts must extend.
-	 */
-	public static abstract class Script
-	{
-		private static final Set<Class<? extends Script>> scripts = new Reflections().getSubTypesOf(Script.class);
-
-		public static Script findMatch()
-		{
-			for (Class<? extends Script> script : scripts)
-			{
-				try
-				{
-					final Script instance = script.newInstance();
-					if (instance.match())
-					{
-						return instance;
-					}
-				}
-				catch (InstantiationException e)
-				{
-					e.printStackTrace();
-				}
-				catch (IllegalAccessException e)
-				{
-					e.printStackTrace();
-				}
-			}
-			return null;
-		}
-
-		abstract public boolean match();
-
-		abstract public void assimilate();
-	}
-
 	// Global Attributes
 
 	public static final Networks networks = new Networks(CoffeeScript.readCsonFileToJsonObject("networks.coffee"));
@@ -75,7 +35,7 @@ public class Standard
 
 	public static Callback0 decrypt(final String s)
 	{
-		return () -> {
+		return {
 
 		};
 	}
@@ -128,7 +88,7 @@ public class Standard
 	public static DirectoryParams directory(final String path)
 	{
 		final DirectoryParams o = new DirectoryParams();
-		o.setCallback(() -> {
+		o.setCallback({
 			then(execute("mkdir "+path+" "+o.getOwner()));
 		});
 		return o;
@@ -138,7 +98,7 @@ public class Standard
 	public static Params execute(final String cmd)
 	{
 		final Params o = new Params();
-		o.setCallback(() -> {
+		o.setCallback({
 			ssh.cmd(cmd);
 		});
 		return o;
@@ -146,21 +106,21 @@ public class Standard
 
 	public static Callback0 template(final String path)
 	{
-		return () -> {
+		return {
 
 		};
 	}
 
 	public static Callback0 upload(final String path)
 	{
-		return () -> {
+		return {
 
 		};
 	}
 
 	public static Callback0 remoteFileExists(final String path)
 	{
-		return () -> {
+		return {
 
 		};
 	}

@@ -12,6 +12,7 @@ import net.schmizz.sshj.xfer.FileSystemFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 public class Ssh
 {
@@ -58,10 +59,10 @@ public class Ssh
 			final Session.Command cmd = session.exec(command);
 			Logger.stdin(command);
 			cmd.join(); // wait indefinitely for remote process to exit
-			final String stdOut = IOUtils.readFully(cmd.getInputStream()).toString();
+			final String stdOut = IOUtils.readFully(cmd.getInputStream()).toString(StandardCharsets.UTF_8.name());
 			if (stdOut.length() > 0)
 				Logger.stdout(stdOut);
-			final String stdErr = IOUtils.readFully(cmd.getErrorStream()).toString();
+			final String stdErr = IOUtils.readFully(cmd.getErrorStream()).toString(StandardCharsets.UTF_8.name());
 			if (stdErr.length() > 0)
 				Logger.stderr(stdErr);
 			final int code = cmd.getExitStatus();
