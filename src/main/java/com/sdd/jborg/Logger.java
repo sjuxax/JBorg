@@ -1,4 +1,4 @@
-package com.sdd.jborg.util;
+package com.sdd.jborg;
 
 import java.util.Collections;
 import java.util.HashMap;

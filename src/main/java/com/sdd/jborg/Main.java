@@ -1,7 +1,6 @@
 package com.sdd.jborg;
 
 import com.sdd.jborg.cloud.Aws;
-import com.sdd.jborg.util.Logger;
 
 public class Main
 {

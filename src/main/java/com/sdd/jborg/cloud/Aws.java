@@ -4,7 +4,7 @@ import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
-import com.sdd.jborg.util.Logger;
+import com.sdd.jborg.Logger;
 
 public class Aws
 {

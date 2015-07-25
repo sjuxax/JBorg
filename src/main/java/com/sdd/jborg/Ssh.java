@@ -1,6 +1,5 @@
 package com.sdd.jborg;
 
-import com.sdd.jborg.util.Logger;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.common.IOUtils;
 import net.schmizz.sshj.connection.ConnectionException;
