@@ -47,60 +47,28 @@ public class Standard
 
     private trait SudoAbility
     {
-        private String sudo
-
-        public def setSudo(final boolean sudo)
-        {
-            this.sudo = sudo
-            return this
-        }
+        protected String sudo
     }
-
     private trait OwnAbility
     {
-        private String user
-        private String group
-
-        public def setOwner(final String user)
-        {
-            this.user = user
-        }
-
-        public def getOwner()
-        {
-            return user
-        }
-
-        public def setGroup(final String group)
-        {
-            this.group = group
-        }
-
-        public def getGroup()
-        {
-            return group
-        }
+        protected String user
+        protected String group
     }
 
     private trait ModeAbility
     {
-        private String mode
-
-        public def setMode(final String mode)
-        {
-            this.mode = mode
-        }
-
-        public def getMode()
-        {
-            return mode
-        }
+        protected String mode
     }
 
     public static final class DirectoryParams
         extends Params
         implements SudoAbility, OwnAbility, ModeAbility
     {
+        public DirectoryParams setMode(final String mode)
+        {
+            this.mode = mode
+            return this
+        }
     }
 
     public static class Params
