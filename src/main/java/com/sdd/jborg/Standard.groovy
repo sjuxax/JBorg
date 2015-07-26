@@ -18,7 +18,10 @@ public class Standard
 
     private static Queue<Callback0> queue = new ArrayDeque<>();
 
-    public static Async then(final Callback0 cb)
+    public static final int SERIAL = 1;
+    public static final int PARALLEL = 2;
+
+    public static Async then(final int type)
     {
         queue.add(cb);
         return Async.instance;
