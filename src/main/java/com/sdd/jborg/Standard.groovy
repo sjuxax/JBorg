@@ -58,15 +58,20 @@ public class Standard
         return { execute "chmod ${o['mode']} ${path}" }
     }
 
-    public static class DirectoryParams
+    public static abstract class DirectoryParams
     {
-        String owner;
-        String group;
-        String mode;
-        String sudo;
+        protected String owner;
+        protected String group;
+        protected String mode;
+        protected String sudo;
+        public void setOwner(String owner)
+        {
+            this.owner = owner;
+        }
+        abstract void call();
     }
 
-    public static Callback0 directory(final String path, final Callback1<DirectoryParams> cb)
+    public static Callback0 directory(final String path, final DirectoryParams cb)
     {
         o['mode'] ?: '0755'
         return {
