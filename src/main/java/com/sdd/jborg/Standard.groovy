@@ -20,8 +20,8 @@ public class Standard
 {
 	// Global Attributes
 
-	//public static final Networks networks = new Networks(CoffeeScript.readCsonFileToJsonObject("networks.coffee"));
-	public static final Networks networks = new Networks();
+	public static final Networks networks = new Networks(CoffeeScript.readCsonFileToJsonObject("networks.coffee"));
+	//public static final Networks networks = new Networks();
 	public static final Server server = new Server(); // a.k.a. "locals"
 	public static Ssh ssh;
 
@@ -29,9 +29,9 @@ public class Standard
 
 	private static Queue<Callback0> queue = new ArrayDeque<>();
 
-	public static void then(final Callback0 cb)
+	public static void then(final Params params)
 	{
-		queue.add(cb);
+		queue.add(params.getCallback());
 	}
 
 	public static void go()
@@ -42,11 +42,11 @@ public class Standard
 		}
 	}
 
-	private final Pattern BASH_PATTERN = Pattern.compile("([^0-9a-z-])", Pattern.CASE_INSENSITIVE);
-	public String bashEscape(final String cmd)
+	private static final Pattern BASH_PATTERN = Pattern.compile("([^0-9a-z-])", Pattern.CASE_INSENSITIVE);
+	public static String bashEscape(final String cmd)
 	{
 		final Matcher matcher = BASH_PATTERN.matcher(cmd);
-		matcher.replaceAll("\\\$1");
+		matcher.replaceAll('\\$1');
 	}
 
 
@@ -78,7 +78,6 @@ public class Standard
 		} catch (UnsupportedEncodingException e) {
 			e.printStackTrace();
 		}
-
 		return null;
 	}
 
@@ -126,12 +125,12 @@ public class Standard
 	{
 		private Callback0 callback;
 
-		private void setCallback(final Callback0 callback)
+		public void setCallback(final Callback0 callback)
 		{
 			this.callback = callback;
 		}
 
-		private Callback0 getCallback()
+		public Callback0 getCallback()
 		{
 			return callback;
 		}
@@ -174,7 +173,7 @@ public class Standard
 		p.setCallback({
 			// TODO: implement retries
 			// TODO: implement expect assertions
-			ssh.cmd(cmd, { code, out, err ->
+			ssh.cmd(p.sudo + cmd, { code, out, err ->
 				if (p.testCb != null)
 					p.testCb.call(code, out, err);
 			});
@@ -188,6 +187,13 @@ public class Standard
 	{
 		public String owner;
 		public String group;
+		private boolean recursive;
+
+		public ChownParams setRecursive(final boolean recursive)
+		{
+			this.recursive = recursive;
+			return this;
+		}
 
 		public ChownParams setOwner(final String owner)
 		{
@@ -226,7 +232,11 @@ public class Standard
 		if (p.owner == null || p.group == null)
 			die("chown owner and group are required.");
 		p.setCallback({
-			execute "chown ${o['owner']}.${o['group']} ${path}"
+			execute("chown "+
+				"${p.recursive ? "-R " : ""}"+
+				"${p.mode}"+
+				" ${path}")
+				.setSudo(p.sudo).callback.call();
 		});
 		return p;
 	}
@@ -265,8 +275,16 @@ public class Standard
 	public static ChmodParams chmod(final String path)
 	{
 		final ChmodParams p = new ChmodParams();
+		if (p.mode == null)
+		{
+			die("mode is required.");
+			return null;
+		}
 		p.setCallback({
-			execute("chmod ${p.mode} ${path}");
+			execute("chmod "+
+				"${p.mode}"+
+				" ${path}")
+				.setSudo(p.sudo).callback.call();
 		});
 		return p;
 	}
@@ -329,35 +347,46 @@ public class Standard
 					return;
 				}
 				else
-					execute("");
-			});
-			execute("mkdir -p ${path}");
+				{
+					execute("mkdir ${p.recursive ? " -p" : ""} ${path}")
+						.setSudo(p.sudo).callback.call();
+				}
+				if (p.owner != null || p.group != null)
+					chown(path)
+						.setOwner(p.owner)
+						.setGroup(p.group)
+						.setSudo(p.sudo).callback.call();
+				if (p.mode != null)
+					chmod(path)
+						.setMode(p.mode)
+						.setSudo(p.sudo).callback.call();
+			}).callback.call();
 		});
 		return p;
 	}
 
 	private trait Sudoable
 	{
-		private String sudo;
+		private String sudo = "";
 
 		public String getSudo()
 		{
 			return sudo;
 		}
 
-		private void _setSudo(final String cmd)
+		public void _setSudo(final String cmd)
 		{
 			this.sudo = cmd;
 		}
 
-		private void _setSudoUser(final String sudoer)
+		public void _setSudoUser(final String sudoer)
 		{
-			this.sudo = "sudo -i -u ${sudoer}"
+			this.sudo = "sudo -i -u ${sudoer} "
 		}
 
-		private void _setSudo(final boolean sudo)
+		public void _setSudo(final boolean sudo)
 		{
-			this.sudo = sudo ? 'sudo -i' : ''
+			this.sudo = sudo ? 'sudo -i ' : ''
 		}
 	}
 
@@ -440,38 +469,38 @@ public class Standard
 				execute("useradd ${name} \\\n"+
 					"  --create-home \\\n"+
 					"  --user-group \\\n"+
-					(p.comment ? " --comment ${bashEscape p.comment} \\\n" : "")+
-					(p.password ? " --password ${bashEscape p.password} \\\n" : "")+
+					(p.comment ? " --comment "+ bashEscape(p.comment) +" \\\n" : "")+
+					(p.password ? " --password "+ bashEscape(p.password) +" \\\n" : "")+
 					" --shell ${p.shell ?: "/bin/bash"} \\\n")
-					.setSudo(p.getSudo());
+					.setSudo(p.getSudo()).callback.call();
 				if (p.groupName != null)
 					execute("usermod -g ${p.groupName} ${name}")
-						.setSudo(p.getSudo());
-				if (p.groups.length > 0)
+						.setSudo(p.getSudo()).callback.call();
+				if (p.groups != null && p.groups.length > 0)
 					for (final String group : p.groups)
 						execute("usermod -a -G ${group} ${name}")
-							.setSudo(p.getSudo());
-				if (p.sshKeys.length > 0)
+							.setSudo(p.getSudo()).callback.call();
+				if (p.sshKeys != null && p.sshKeys.length > 0)
 					for (final String key : p.sshKeys)
 					{
 						directory("\$(echo ~${name})/.ssh/")
 							.setRecursive(true)
 							.setMode('0700')
-							.setSudo(p.getSudo());
+							.setSudo(p.getSudo()).callback.call();
 						execute("touch \$(echo ~${name})/.ssh/authorized_keys")
-							.setSudo(p.getSudo());
+							.setSudo(p.getSudo()).callback.call();
 						chmod("\$(echo ~${name})/.ssh/authorized_keys")
 							.setMode('0600')
-							.setSudo(p.getSudo());
-						execute("echo ${bashEscape key} | sudo tee -a \$(echo ~${name})/.ssh/authorized_keys >/dev/null")
-							.setSudo(p.getSudo());
+							.setSudo(p.getSudo()).callback.call();
+						execute("echo "+ bashEscape(key) +" | sudo tee -a \$(echo ~${name})/.ssh/authorized_keys >/dev/null")
+							.setSudo(p.getSudo()).callback.call();
 						chown("\$(echo ~${name})/.ssh/")
 							.setRecursive(true)
 							.setOwner(name)
 							.setGroup(name)
-							.setSudo(p.getSudo());
+							.setSudo(p.getSudo()).callback.call();
 					}
-			});
+			}).callback.call();
 		});
 		return p;
 	}
