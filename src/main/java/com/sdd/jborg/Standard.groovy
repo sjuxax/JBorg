@@ -1,6 +1,7 @@
 package com.sdd.jborg
 
 import com.sdd.jborg.util.Callback0
+import com.sdd.jborg.util.Callback1
 
 /**
  * Standard fields and methods every script should have in scope.
@@ -57,7 +58,15 @@ public class Standard
         return { execute "chmod ${o['mode']} ${path}" }
     }
 
-    public static Callback0 directory(final Map o = [:], final String path)
+    public static class DirectoryParams
+    {
+        String owner;
+        String group;
+        String mode;
+        String sudo;
+    }
+
+    public static Callback0 directory(final String path, final Callback1<DirectoryParams> cb)
     {
         o['mode'] ?: '0755'
         return {
