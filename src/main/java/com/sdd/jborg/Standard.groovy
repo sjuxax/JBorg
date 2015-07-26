@@ -60,18 +60,37 @@ public class Standard
 
     public static abstract class DirectoryParams
     {
-        protected String owner;
-        protected String group;
-        protected String mode;
-        protected String sudo;
-        public void setOwner(String owner)
+        String owner;
+        String group;
+        String mode;
+        String sudo;
+
+        public DirectoryParams setOwner(final String owner)
         {
-            this.owner = owner;
+            this.owner = owner
+            return this
         }
-        abstract void call();
+
+        public DirectoryParams setGroup(final String group)
+        {
+            this.group = group
+            return this
+        }
+
+        public DirectoryParams setMode(final String mode)
+        {
+            this.mode = mode
+            return this
+        }
+
+        public DirectoryParams setSudo(final String sudo)
+        {
+            this.sudo = sudo
+            return this
+        }
     }
 
-    public static Callback0 directory(final String path, final DirectoryParams cb)
+    public static DirectoryParams directory(final String path)
     {
         o['mode'] ?: '0755'
         return {
