@@ -1,17 +1,15 @@
 package com.sdd.jborg
 
 import com.sdd.jborg.util.Callback0
-import com.sdd.jborg.util.Crypt
 import com.sdd.jborg.util.FileSystem;
 
 import javax.crypto.Cipher
 import javax.crypto.SecretKey
-import javax.crypto.SecretKeyFactory
-import javax.crypto.spec.DESedeKeySpec
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
 import java.nio.charset.StandardCharsets
-import java.security.InvalidKeyException
+import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-import java.security.spec.InvalidKeySpecException
 import java.util.regex.Matcher
 import java.util.regex.Pattern
 
@@ -22,7 +20,8 @@ public class Standard
 {
 	// Global Attributes
 
-	public static final Networks networks = new Networks(CoffeeScript.readCsonFileToJsonObject("networks.coffee"));
+	//public static final Networks networks = new Networks(CoffeeScript.readCsonFileToJsonObject("networks.coffee"));
+	public static final Networks networks = new Networks();
 	public static final Server server = new Server(); // a.k.a. "locals"
 	public static Ssh ssh;
 
@@ -68,18 +67,27 @@ public class Standard
 	// encryption
 	private static final String CIPHER_TYPE = "AES/CBC/PKCS5Padding";
 	private static final SecretKey secret = readSecret();
+	private static final IvParameterSpec iv = readIv();
 	private static SecretKey readSecret()
 	{
 		try {
-			return SecretKeyFactory
-				.getInstance("DESede")
-				.generateSecret(new DESedeKeySpec(
-					FileSystem.readFileToBytes("secret")));
-		}
-		catch (InvalidKeySpecException | NoSuchAlgorithmException | InvalidKeyException e)
-		{
+			return new SecretKeySpec(MessageDigest.getInstance("SHA-256")
+				.digest(FileSystem.readFileToBytes("secret")), "AES");
+		} catch (NoSuchAlgorithmException e) {
 			e.printStackTrace();
-			Logger.stderr("Unable to read secret key file");
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+		}
+
+		return null;
+	}
+
+	private static IvParameterSpec readIv()
+	{
+		try {
+			return new IvParameterSpec(new byte[16]);
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
 		}
 		return null;
 	}
@@ -89,7 +97,7 @@ public class Standard
 		try
 		{
 			final Cipher cipher = Cipher.getInstance(CIPHER_TYPE);
-			cipher.init(Cipher.ENCRYPT_MODE, secret);
+			cipher.init(Cipher.ENCRYPT_MODE, secret, iv);
 			return Base64.getEncoder().encodeToString(cipher.doFinal(s.getBytes(StandardCharsets.UTF_8)));
 		}
 		catch (Exception e)
@@ -104,7 +112,7 @@ public class Standard
 		try
 		{
 			final Cipher cipher = Cipher.getInstance(CIPHER_TYPE);
-			cipher.init(Cipher.DECRYPT_MODE, secret);
+			cipher.init(Cipher.DECRYPT_MODE, secret, iv);
 			return new String(cipher.doFinal(Base64.getDecoder().decode(s)));
 		}
 		catch (Exception e)

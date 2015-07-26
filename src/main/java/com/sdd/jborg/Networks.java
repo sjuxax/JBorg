@@ -6,6 +6,11 @@ public final class Networks
 {
 	private final JsonObject meta;
 
+	public Networks()
+	{
+		this.meta = new JsonObject();
+	}
+
 	public Networks(final JsonObject meta)
 	{
 		this.meta = meta;
