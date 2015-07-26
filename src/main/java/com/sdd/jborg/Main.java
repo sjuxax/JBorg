@@ -1,7 +1,7 @@
 package com.sdd.jborg;
 
 import com.sdd.jborg.cloud.Aws;
-import static com.sdd.jborg.Standard.*;
+import static com.sdd.jborg.scripts.Standard.*;
 
 public class Main
 {
