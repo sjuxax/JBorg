@@ -1,24 +1,36 @@
 package com.sdd.jborg.scripts.params;
 
 import com.sdd.jborg.Ssh;
+import com.sdd.jborg.util.Callback0;
+import com.sdd.jborg.scripts.Standard.RemoteServerValidationException;
 
 public class Standard
 {
+	public static class Params
+	{
+		public Callback0 callback;
+
+		public void callImmediate()
+		{
+			callback.call();
+		}
+	}
+
 	private static class Sudoable
 	{
 		private String sudo = "";
 
-		public String getSudo()
+		public String getSudoCmd()
 		{
 			return sudo;
 		}
 
-		public void setSudo(final String cmd)
+		public void setSudoCmd(final String cmd)
 		{
 			this.sudo = cmd;
 		}
 
-		public void setSudoUser(final String sudoer)
+		public void setSudoAsUser(final String sudoer)
 		{
 			this.sudo = "sudo -i -u " + sudoer + " ";
 		}
@@ -29,14 +41,29 @@ public class Standard
 		}
 	}
 
-	public static final class ExecuteParams
+	public interface ScriptRemoteTestCallback1
+	{
+		void call(final int code, final String out, final String err)
+			throws RemoteServerValidationException;
+	}
+
+	public static final class ExecuteParams extends Params
 	{
 		private Ssh.CmdCallback testCb;
 		private Sudoable sudoable = new Sudoable();
 
-		public void setTest(final Ssh.CmdCallback testCb)
+		public ExecuteParams setTest(final ScriptRemoteTestCallback1 testCb)
 		{
-			this.testCb = testCb;
+			this.testCb = (code, out, err) -> {
+				try {
+					testCb.call(code, out, err);
+				}
+				catch (final RemoteServerValidationException e)
+				{
+					com.sdd.jborg.scripts.Standard.notifySkip(e);
+				}
+			};
+			return this;
 		}
 
 		public Ssh.CmdCallback getTest()
@@ -44,24 +71,27 @@ public class Standard
 			return testCb;
 		}
 
-		public String getSudo()
+		public String getSudoCmd()
 		{
-			return sudoable.getSudo();
+			return sudoable.getSudoCmd();
 		}
 
-		public void setSudo(final String cmd)
+		public ExecuteParams setSudoCmd(final String cmd)
 		{
-			sudoable.setSudo(cmd);
+			sudoable.setSudoCmd(cmd);
+			return this;
 		}
 
-		public void setSudoUser(final String sudoer)
+		public ExecuteParams setSudoAsUser(final String sudoer)
 		{
-			sudoable.setSudoUser(sudoer);
+			sudoable.setSudoAsUser(sudoer);
+			return this;
 		}
 
-		public void setSudo(final boolean sudo)
+		public ExecuteParams setSudo(final boolean sudo)
 		{
 			sudoable.setSudo(sudo);
+			return this;
 		}
 	}
 
@@ -121,28 +151,31 @@ public class Standard
 		}
 	}
 
-	public static final class ChownParams
+	public static final class ChownParams extends Params
 	{
 		private Sudoable sudoable = new Sudoable();
 
-		public String getSudo()
+		public String getSudoCmd()
 		{
-			return sudoable.getSudo();
+			return sudoable.getSudoCmd();
 		}
 
-		public void setSudo(final String cmd)
+		public ChownParams setSudoCmd(final String cmd)
 		{
-			sudoable.setSudo(cmd);
+			sudoable.setSudoCmd(cmd);
+			return this;
 		}
 
-		public void setSudoUser(final String sudoer)
+		public ChownParams setSudoAsUser(final String sudoer)
 		{
-			sudoable.setSudoUser(sudoer);
+			sudoable.setSudoAsUser(sudoer);
+			return this;
 		}
 
-		public void setSudo(final boolean sudo)
+		public ChownParams setSudo(final boolean sudo)
 		{
 			sudoable.setSudo(sudo);
+			return this;
 		}
 
 		private Ownable ownable = new Ownable();
@@ -152,9 +185,10 @@ public class Standard
 			return ownable.getOwner();
 		}
 
-		public void setOwner(final String owner)
+		public ChownParams setOwner(final String owner)
 		{
 			ownable.setOwner(owner);
+			return this;
 		}
 
 		public String getGroup()
@@ -162,9 +196,10 @@ public class Standard
 			return ownable.getGroup();
 		}
 
-		public void setGroup(final String group)
+		public ChownParams setGroup(final String group)
 		{
 			ownable.setGroup(group);
+			return this;
 		}
 
 		private Recursable recursable = new Recursable();
@@ -174,34 +209,38 @@ public class Standard
 			return recursable.getRecursive();
 		}
 
-		public void setRecursive(final boolean recursive)
+		public ChownParams setRecursive(final boolean recursive)
 		{
 			recursable.setRecursive(recursive);
+			return this;
 		}
 	}
 
-	public static final class ChmodParams
+	public static final class ChmodParams extends Params
 	{
 		private Sudoable sudoable = new Sudoable();
 
-		public String getSudo()
+		public String getSudoCmd()
 		{
-			return sudoable.getSudo();
+			return sudoable.getSudoCmd();
 		}
 
-		public void setSudo(final String cmd)
+		public ChmodParams setSudoCmd(final String cmd)
 		{
-			sudoable.setSudo(cmd);
+			sudoable.setSudoCmd(cmd);
+			return this;
 		}
 
-		public void setSudoUser(final String sudoer)
+		public ChmodParams setSudoAsUser(final String sudoer)
 		{
-			sudoable.setSudoUser(sudoer);
+			sudoable.setSudoAsUser(sudoer);
+			return this;
 		}
 
-		public void setSudo(final boolean sudo)
+		public ChmodParams setSudo(final boolean sudo)
 		{
 			sudoable.setSudo(sudo);
+			return this;
 		}
 
 		private Recursable recursable = new Recursable();
@@ -211,9 +250,10 @@ public class Standard
 			return recursable.getRecursive();
 		}
 
-		public void setRecursive(final boolean recursive)
+		public ChmodParams setRecursive(final boolean recursive)
 		{
 			recursable.setRecursive(recursive);
+			return this;
 		}
 
 		private Modeable modeable = new Modeable();
@@ -223,34 +263,38 @@ public class Standard
 			return modeable.getMode();
 		}
 
-		public void setMode(String mode)
+		public ChmodParams setMode(String mode)
 		{
 			modeable.setMode(mode);
+			return this;
 		}
 	}
 
-	public static final class DirectoryParams
+	public static final class DirectoryParams extends Params
 	{
 		private Sudoable sudoable = new Sudoable();
 
-		public String getSudo()
+		public String getSudoCmd()
 		{
-			return sudoable.getSudo();
+			return sudoable.getSudoCmd();
 		}
 
-		public void setSudo(final String cmd)
+		public DirectoryParams setSudoCmd(final String cmd)
 		{
-			sudoable.setSudo(cmd);
+			sudoable.setSudoCmd(cmd);
+			return this;
 		}
 
-		public void setSudoUser(final String sudoer)
+		public DirectoryParams setSudoAsUser(final String sudoer)
 		{
-			sudoable.setSudoUser(sudoer);
+			sudoable.setSudoAsUser(sudoer);
+			return this;
 		}
 
-		public void setSudo(final boolean sudo)
+		public DirectoryParams setSudo(final boolean sudo)
 		{
 			sudoable.setSudo(sudo);
+			return this;
 		}
 
 		private Ownable ownable = new Ownable();
@@ -260,9 +304,10 @@ public class Standard
 			return ownable.getOwner();
 		}
 
-		public void setOwner(final String owner)
+		public DirectoryParams setOwner(final String owner)
 		{
 			ownable.setOwner(owner);
+			return this;
 		}
 
 		public String getGroup()
@@ -270,9 +315,10 @@ public class Standard
 			return ownable.getGroup();
 		}
 
-		public void setGroup(final String group)
+		public DirectoryParams setGroup(final String group)
 		{
 			ownable.setGroup(group);
+			return this;
 		}
 
 		private Recursable recursable = new Recursable();
@@ -282,9 +328,10 @@ public class Standard
 			return recursable.getRecursive();
 		}
 
-		public void setRecursive(final boolean recursive)
+		public DirectoryParams setRecursive(final boolean recursive)
 		{
 			recursable.setRecursive(recursive);
+			return this;
 		}
 
 		private Modeable modeable = new Modeable();
@@ -294,13 +341,14 @@ public class Standard
 			return modeable.getMode();
 		}
 
-		public void setMode(String mode)
+		public DirectoryParams setMode(String mode)
 		{
 			modeable.setMode(mode);
+			return this;
 		}
 	}
 
-	public static final class UserParams
+	public static final class UserParams extends Params
 	{
 		private String comment;
 		private String password;
@@ -314,9 +362,10 @@ public class Standard
 			return comment;
 		}
 
-		public void setComment(final String comment)
+		public UserParams setComment(final String comment)
 		{
 			this.comment = comment;
+			return this;
 		}
 
 		public String getPassword()
@@ -324,9 +373,10 @@ public class Standard
 			return password;
 		}
 
-		public void setPassword(final String password)
+		public UserParams setPassword(final String password)
 		{
 			this.password = password;
+			return this;
 		}
 
 		public String[] getSshKeys()
@@ -334,9 +384,10 @@ public class Standard
 			return sshKeys;
 		}
 
-		public void setSshKeys(final String[] sshKeys)
+		public UserParams setSshKeys(final String[] sshKeys)
 		{
 			this.sshKeys = sshKeys;
+			return this;
 		}
 
 		public String getGroupName()
@@ -344,9 +395,10 @@ public class Standard
 			return groupName;
 		}
 
-		public void setGroupName(final String groupName)
+		public UserParams setGroupName(final String groupName)
 		{
 			this.groupName = groupName;
+			return this;
 		}
 
 		public String[] getGroups()
@@ -354,9 +406,10 @@ public class Standard
 			return groups;
 		}
 
-		public void setGroups(final String[] groups)
+		public UserParams setGroups(final String[] groups)
 		{
 			this.groups = groups;
+			return this;
 		}
 
 		public String getShell()
@@ -364,31 +417,35 @@ public class Standard
 			return shell;
 		}
 
-		public void setShell(final String shell)
+		public UserParams setShell(final String shell)
 		{
 			this.shell = shell;
+			return this;
 		}
 
 		private Sudoable sudoable = new Sudoable();
 
-		public String getSudo()
+		public String getSudoCmd()
 		{
-			return sudoable.getSudo();
+			return sudoable.getSudoCmd();
 		}
 
-		public void setSudo(final String cmd)
+		public UserParams setSudoCmd(final String cmd)
 		{
-			sudoable.setSudo(cmd);
+			sudoable.setSudoCmd(cmd);
+			return this;
 		}
 
-		public void setSudoUser(final String sudoer)
+		public UserParams setSudoAsUser(final String sudoer)
 		{
-			sudoable.setSudoUser(sudoer);
+			sudoable.setSudoAsUser(sudoer);
+			return this;
 		}
 
-		public void setSudo(final boolean sudo)
+		public UserParams setSudo(final boolean sudo)
 		{
 			sudoable.setSudo(sudo);
+			return this;
 		}
 	}
 }

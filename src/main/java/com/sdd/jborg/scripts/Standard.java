@@ -6,7 +6,6 @@ import com.sdd.jborg.Networks;
 import com.sdd.jborg.Server;
 import com.sdd.jborg.Ssh;
 import com.sdd.jborg.util.Callback0;
-import com.sdd.jborg.util.Callback1;
 import com.sdd.jborg.util.FileSystem;
 
 import javax.crypto.Cipher;
@@ -40,9 +39,9 @@ public class Standard
 
 	private static Queue<Callback0> queue = new ArrayDeque<>();
 
-	public static void then(final Callback0 cb)
+	public static void then(final Params params)
 	{
-		queue.add(cb);
+		queue.add(params.callback);
 	}
 
 	public static void go()
@@ -53,20 +52,27 @@ public class Standard
 		}
 	}
 
+	// Helpers
+
 	private static final Pattern BASH_PATTERN = Pattern.compile("([^0-9a-z-])", Pattern.CASE_INSENSITIVE);
+
 	public static String bashEscape(final String cmd)
 	{
 		final Matcher matcher = BASH_PATTERN.matcher(cmd);
 		return matcher.replaceAll("\\$1");
 	}
 
-
-	// methods called once connected
-
-	public static void die(final String reason)
+	public static void die(final Exception reason)
 	{
-		Logger.stderr("Aborting. Reason: " + reason);
+		Logger.err("Aborting. Reason: " + reason.getMessage());
+		reason.printStackTrace();
 		System.exit(1);
+	}
+
+	public static void notifySkip(final Exception reason)
+	{
+		Logger.err("Skipping. Reason: " + reason.getMessage());
+		reason.printStackTrace();
 	}
 
 	public static void log(final String msg)
@@ -74,17 +80,35 @@ public class Standard
 		Logger.info(msg);
 	}
 
+	public static boolean empty(final String value)
+	{
+		return value == null || value.equals("");
+	}
 
-	// encryption
+	public static boolean empty(final Object value)
+	{
+		return value == null;
+	}
+
+	public static boolean empty(final String[] value)
+	{
+		return value == null || value.length < 1;
+	}
+
+	// Encryption
 	private static final String CIPHER_TYPE = "AES/CBC/PKCS5Padding";
 	private static final SecretKey secret = readSecret();
 	private static final IvParameterSpec iv = new IvParameterSpec(new byte[16]);
+
 	private static SecretKey readSecret()
 	{
-		try {
+		try
+		{
 			return new SecretKeySpec(MessageDigest.getInstance("SHA-256")
 				.digest(FileSystem.readFileToBytes("secret")), "AES");
-		} catch (NoSuchAlgorithmException e) {
+		}
+		catch (NoSuchAlgorithmException e)
+		{
 			e.printStackTrace();
 			return null;
 		}
@@ -120,164 +144,190 @@ public class Standard
 		}
 	}
 
-	public static boolean empty(final String value)
+	/**
+	 * Will notify user and abort process.
+	 */
+	public static final class DeveloperInputValidationException extends Exception
 	{
-		return value == null || value.equals("");
+		public DeveloperInputValidationException(String message)
+		{
+			super(message);
+		}
 	}
 
-	public static boolean empty(final Object value)
+	/**
+	 * Will step out, notify user, and continue.
+	 */
+	public static final class RemoteServerValidationException extends Exception
 	{
-		return value == null;
+		public RemoteServerValidationException(String message)
+		{
+			super(message);
+		}
 	}
 
-	public static boolean empty(final String[] value)
+	public interface ScriptCallback1<T>
 	{
-		return value == null || value.length < 1;
+		void call(final T t)
+			throws DeveloperInputValidationException,
+			RemoteServerValidationException;
 	}
 
-	public static Callback0 nope(final String reason) {
-		Logger.stderr(reason);
-		return () -> {};
+	public static <T extends Params> T chainForCb(final T p, final ScriptCallback1<T> cb)
+	{
+		p.callback = () -> {
+			try
+			{
+				cb.call(p);
+			}
+			catch (final RemoteServerValidationException e)
+			{
+				com.sdd.jborg.scripts.Standard.notifySkip(e);
+			}
+			catch (final DeveloperInputValidationException e)
+			{
+				die(e);
+			}
+		};
+		return p;
 	}
 
-	public static Callback0 execute(final String cmd, final Callback1<ExecuteParams> paramsCb)
+	public static ExecuteParams execute(final String cmd)
 	{
-		final ExecuteParams p = new ExecuteParams();
-		paramsCb.call(p);
-		return () -> {
+		return chainForCb(new ExecuteParams(), p -> {
 			// TODO: implement retries
 			// TODO: implement expect assertions
-			ssh.cmd(p.getSudo() + cmd, (code, out, err) -> {
+			ssh.cmd(p.getSudoCmd() + cmd, (code, out, err) -> {
 				if (!empty(p.getTest()))
 					p.getTest().call(code, out, err);
 			});
-		};
+		});
 	}
 
-	public static Callback0 chown(final String path, final Callback1<ChownParams> paramsCb)
+	public static ChownParams chown(final String path)
 	{
-		final ChownParams p = new ChownParams();
-		paramsCb.call(p);
-		if (empty(p.getOwner()) || empty(p.getGroup()))
-			die("chown owner and group are required.");
-		return () -> {
+		return chainForCb(new ChownParams(), p -> {
+			if (empty(p.getOwner()) || empty(p.getGroup()))
+				throw new DeveloperInputValidationException("chown owner and group are required.");
+
 			execute("chown " +
-					(p.getRecursive() ? "-R " : "") +
-					p.getOwner() +
-					"." + p.getGroup() +
-					" " + path,
-				a -> {
-					a.setSudo(p.getSudo());
-				}).call();
-		};
+				        (p.getRecursive() ? "-R " : "") +
+				        p.getOwner() +
+				        "." + p.getGroup() +
+				        " " + path)
+				.setSudoCmd(p.getSudoCmd())
+				.callImmediate();
+		});
 	}
 
-	public static Callback0 chmod(final String path, final Callback1<ChmodParams> paramsCb)
+	public static ChmodParams chmod(final String path)
 	{
-		final ChmodParams p = new ChmodParams();
-		paramsCb.call(p);
-		if (empty(p.getMode()))
-			return nope("mode is required.");
-		return () -> {
+		return chainForCb(new ChmodParams(), p -> {
+			if (empty(p.getMode()))
+				throw new DeveloperInputValidationException("mode is required.");
+
 			execute("chmod " +
-					p.getMode() +
-					" " + path,
-				a -> {
-					a.setSudo(p.getSudo());
-				}).call();
-		};
+				        p.getMode() +
+				        " " + path)
+				.setSudoCmd(p.getSudoCmd())
+				.callImmediate();
+		});
 	}
 
-	public static Callback0 directory(final String path, final Callback1<DirectoryParams> paramsCb)
+	public static DirectoryParams directory(final String path)
 	{
-		final DirectoryParams p = new DirectoryParams();
-		paramsCb.call(p);
-		if (empty(p.getMode()))
-			p.setMode("0755");
-		return () -> {
-			execute("test -d "+ path, a -> {
-				a.setTest((code, out, err) -> {
-					if (code == 0)
-						log("Skipping existing directory.");
-					else
-						execute("mkdir " + (p.getRecursive() ? " -p" : "") + " " + path, a2 -> {
-							a2.setSudo(p.getSudo());
-						}).call();
-					if (empty(p.getOwner()) || empty(p.getGroup()))
-						chown(path, a3 -> {
-							a3.setOwner(p.getOwner());
-							a3.setGroup(p.getGroup());
-							a3.setSudo(p.getSudo());
-						}).call();
-					if (empty(p.getMode()))
-						chmod(path, a4 -> {
-							a4.setMode(p.getMode());
-							a4.setSudo(p.getSudo());
-						}).call();
-				});
-			}).call();
-		};
-	}
+		return chainForCb(new DirectoryParams(), p -> {
+			if (empty(p.getMode()))
+				p.setMode("0755");
 
-	public static Callback0 user(final String name, final Callback1<UserParams> paramsCb)
-	{
-		final UserParams p = new UserParams();
-		paramsCb.call(p);
-		return () -> {
-			execute("id "+name, a -> {
-				a.setTest((code, out, err) -> {
+			execute("test -d " + path)
+				.setTest((code, out, err) -> {
 					if (code == 0)
 					{
-						log("user "+ name +" exists.");
-						return;
+						log("Skipping existing directory.");
 					}
-					execute(
-						"useradd "+ name +" \\\n" +
-						"  --create-home \\\n" +
-						"  --user-group \\\n" +
-						(!empty(p.getComment()) ? "  --comment " + bashEscape(p.getComment()) + " \\\n" : "") +
-						(!empty(p.getPassword()) ? "  --password " + bashEscape(p.getPassword()) + " \\\n" : "") +
-						("  --shell " + (empty(p.getShell()) ? "/bin/bash" : "")),
-						a2 -> {
-							a2.setSudo(p.getSudo());
-						}).call();
+					else
+					{
+						execute("mkdir " +
+							        (p.getRecursive() ? " -p" : "") +
+							        " " + path)
+							.setSudoCmd(p.getSudoCmd())
+							.callImmediate();
+					}
+
+					if (empty(p.getOwner()) || empty(p.getGroup()))
+						chown(path)
+							.setOwner(p.getOwner())
+							.setGroup(p.getGroup())
+							.setSudoCmd(p.getSudoCmd())
+							.callImmediate();
+
+					if (empty(p.getMode()))
+						chmod(path)
+							.setMode(p.getMode())
+							.setSudoCmd(p.getSudoCmd())
+							.callImmediate();
+				})
+				.callImmediate();
+		});
+	}
+
+	public static UserParams user(final String name)
+	{
+		return chainForCb(new UserParams(), p -> {
+			execute("id " + name)
+				.setTest((code, out, err) -> {
+					if (code == 0)
+						throw new RemoteServerValidationException("user " + name + " exists.");
+
+					execute("useradd " + name + " \\\n" +
+						        "  --create-home \\\n" +
+						        "  --user-group \\\n" +
+						        (!empty(p.getComment()) ? "  --comment " + bashEscape(p.getComment()) + " \\\n" : "") +
+						        (!empty(p.getPassword()) ? "  --password " + bashEscape(p.getPassword()) + " \\\n" : "") +
+						        ("  --shell " + (empty(p.getShell()) ? "/bin/bash" : "")))
+						.setSudoCmd(p.getSudoCmd())
+						.callImmediate();
+
 					if (!empty(p.getGroupName()))
-						execute("usermod -g "+ p.getGroupName() + " "+ name, a3 -> {
-							a3.setSudo(p.getSudo());
-						}).call();
+						execute("usermod -g " + p.getGroupName() + " " + name)
+							.setSudoCmd(p.getSudoCmd())
+							.callImmediate();
+
 					if (!empty(p.getGroups()))
 						for (final String group : p.getGroups())
-							execute("usermod -a -G "+ group +" "+ name, a4 -> {
-								a4.setSudo(p.getSudo());
-							}).call();
+							execute("usermod -a -G " + group + " " + name)
+								.setSudoCmd(p.getSudoCmd())
+								.callImmediate();
+
 					if (!empty(p.getSshKeys()))
 						for (final String key : p.getSshKeys())
 						{
-							directory("$(echo ~" + name + ")/.ssh/", a5 -> {
-								a5.setRecursive(true);
-								a5.setMode("0700");
-								a5.setSudo(p.getSudo());
-							}).call();
-							execute("touch $(echo ~"+ name +")/.ssh/authorized_keys", a6 -> {
-								a6.setSudo(p.getSudo());
-							}).call();
-							chmod("$(echo ~"+ name +"/.ssh/authorized_keys", a7 -> {
-								a7.setMode("0600");
-								a7.setSudo(p.getSudo());
-							}).call();
-							execute("echo "+ bashEscape(key) +" | sudo tee -a $(echo ~"+ name +")/.ssh/authorized_keys >/dev/null", a8 -> {
-								a8.setSudo(p.getSudo());
-							}).call();
-							chown("$(echo ~" + name + "/.ssh/", a9 -> {
-								a9.setRecursive(true);
-								a9.setOwner(name);
-								a9.setGroup(name);
-								a9.setSudo(p.getSudo());
-							}).call();
+							directory("$(echo ~" + name + ")/.ssh/")
+								.setRecursive(true)
+								.setMode("0700")
+								.setSudoCmd(p.getSudoCmd())
+								.callImmediate();
+							execute("touch $(echo ~" + name + ")/.ssh/authorized_keys")
+								.setSudoCmd(p.getSudoCmd())
+								.callImmediate();
+							chmod("$(echo ~" + name + "/.ssh/authorized_keys")
+								.setMode("0600")
+								.setSudoCmd(p.getSudoCmd())
+								.callImmediate();
+							execute("echo " + bashEscape(key) + " | sudo tee -a $(echo ~" + name + ")/.ssh/authorized_keys >/dev/null")
+								.setSudoCmd(p.getSudoCmd())
+								.callImmediate();
+							chown("$(echo ~" + name + "/.ssh/")
+								.setRecursive(true)
+								.setOwner(name)
+								.setGroup(name)
+								.setSudoCmd(p.getSudoCmd())
+								.callImmediate();
 						}
-				});
-			}).call();
-		};
+				})
+				.callImmediate();
+		});
 	}
 
 	public static Callback0 template(final String path)

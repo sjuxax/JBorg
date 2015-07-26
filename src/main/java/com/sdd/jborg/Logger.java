@@ -14,7 +14,8 @@ public abstract class Logger
 		INFO,
 		STDIN,
 		STDOUT,
-		STDERR
+		STDERR,
+		ERR
 	}
 
 	private static String host;
@@ -45,14 +46,20 @@ public abstract class Logger
 		write(Type.STDERR, msg);
 	}
 
+	public static void err(final String msg)
+	{
+		write(Type.ERR, msg);
+	}
+
 	private static final Pattern NEWLINE_PATTERN = Pattern.compile("\\n");
+
 	private static void write(final Type type, final String msg)
 	{
 		final String msDiff = "" + (System.currentTimeMillis() - started);
 		final String pad = "\n" + String.join(" ", Collections.nCopies(
 			msDiff.length() + 3 +
-			(host == null ? 0 : host.length() + 1) +
-			type.toString().length() + 3 + 1, ""));
+				(host == null ? 0 : host.length() + 1) +
+				type.toString().length() + 3 + 1, ""));
 		final StringBuffer sb = new StringBuffer();
 
 		sb
@@ -86,6 +93,7 @@ public abstract class Logger
 				sb.append(Color.MAGENTA);
 				break;
 			case STDERR:
+			case ERR:
 				sb.append(Color.LIGHT_RED);
 				break;
 		}
