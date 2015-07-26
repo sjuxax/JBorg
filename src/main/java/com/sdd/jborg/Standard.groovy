@@ -65,30 +65,30 @@ public class Standard
 
     public static abstract class DirectoryParams
     {
-        String owner;
-        String group;
-        String mode;
-        String sudo;
+        public String owner;
+        public String group;
+        public String mode;
+        public boolean sudo;
 
-        public DirectoryParams setOwner(final String owner)
+        public DirectoryParams owner(final String owner)
         {
             this.owner = owner
             return this
         }
 
-        public DirectoryParams setGroup(final String group)
+        public DirectoryParams group(final String group)
         {
             this.group = group
             return this
         }
 
-        public DirectoryParams setMode(final String mode)
+        public DirectoryParams mode(final String mode)
         {
             this.mode = mode
             return this
         }
 
-        public DirectoryParams setSudo(final String sudo)
+        public DirectoryParams sudo(final boolean sudo)
         {
             this.sudo = sudo
             return this
