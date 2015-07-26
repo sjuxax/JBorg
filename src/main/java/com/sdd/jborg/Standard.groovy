@@ -39,8 +39,13 @@ public class Standard
 	 */
 	public static void die(final String reason)
 	{
-		Logger.stderr "Aborting. Reason: ${reason}"
-		System.exit 1
+		Logger.stderr("Aborting. Reason: "+ reason);
+		System.exit(1);
+	}
+
+	public static void log(final String msg)
+	{
+		Logger.info(msg);
 	}
 
 	public static String decrypt(final String s)
@@ -48,18 +53,99 @@ public class Standard
 		return "";
 	}
 
-	public static void execute(final Map o = [:], final String cmd)
+	public static abstract class Params
 	{
-		ssh.cmd cmd
+		private Callback0 callback;
+
+		private void setCallback(final Callback0 callback)
+		{
+			this.callback = callback;
+		}
+
+		private Callback0 getCallback()
+		{
+			return callback;
+		}
 	}
 
-	public static Callback0 chown(final Map o = [:], final String path)
+
+	public static final class ExecuteParams
+		extends Params
+		implements Sudoable
 	{
-		if (!o['owner'] || !o['group'])
-			die "chown owner and group are required."
-		return {
-			execute "chown ${o['owner']}.${o['group']} ${path}"
+		public static interface ExecuteTestCallback
+		{
+			void call(final int code, final String out, final String err);
 		}
+
+		private ExecuteTestCallback testCb;
+
+		public ExecuteParams setTest(final ExecuteTestCallback testCb)
+		{
+			this.testCb = testCb;
+			return this;
+		}
+
+		public ExecuteParams setSudo(final String sudoer)
+		{
+			_setSudo(sudoer);
+			return this;
+		}
+
+		public ExecuteParams setSudo(final boolean sudo)
+		{
+			_setSudo(sudo);
+			return this
+		}
+	}
+
+	public static ExecuteParams execute(final String cmd)
+	{
+		final ExecuteParams p = new ExecuteParams();
+		p.setCallback({
+			ssh.cmd(cmd);
+		});
+		return p;
+	}
+
+	public static final class ChownParams
+		extends Params
+		implements Sudoable, Ownable
+	{
+		public ChownParams setOwner(final String owner)
+		{
+			this.owner = owner;
+			return this;
+		}
+
+		public ChownParams setGroup(final String group)
+		{
+			this.group = group;
+			return this;
+		}
+
+		public ChownParams setSudo(final String sudoer)
+		{
+			_setSudo(sudoer);
+			return this;
+		}
+
+		public ChownParams setSudo(final boolean sudo)
+		{
+			_setSudo(sudo);
+			return this
+		}
+	}
+
+	public static ChownParams chown(final Map o = [:], final String path)
+	{
+		final ChownParams p = new ChownParams();
+		if (p.owner == null || p.group == null)
+			die "chown owner and group are required."
+		p.setCallback({
+			execute "chown ${o['owner']}.${o['group']} ${path}"
+		});
+		return p;
 	}
 
 	public static Callback0 chmod(final Map o = [:], final String path)
@@ -67,12 +153,22 @@ public class Standard
 		return { execute "chmod ${o['mode']} ${path}" }
 	}
 
-	public static abstract class DirectoryParams
+	private trait Ownable
 	{
 		public String owner;
 		public String group;
+	}
+
+	private trait Modeable
+	{
 		public String mode;
-		public String sudo;
+	}
+
+	public static final class DirectoryParams
+		extends Params
+		implements Sudoable, Ownable, Modeable
+	{
+		public boolean recursive;
 
 		public DirectoryParams setOwner(final String owner)
 		{
@@ -94,14 +190,20 @@ public class Standard
 
 		public DirectoryParams setSudo(final String sudoer)
 		{
-			this.sudo = "sudo -i -u ${sudoer}"
+			_setSudo(sudoer);
 			return this;
 		}
 
 		public DirectoryParams setSudo(final boolean sudo)
 		{
-			this.sudo = sudo ? 'sudo -i' : ''
+			_setSudo(sudo);
 			return this
+		}
+
+		public DirectoryParams setRecursive(final boolean recursive)
+		{
+			this.recursive = true;
+			return this;
 		}
 	}
 
@@ -109,7 +211,7 @@ public class Standard
 	{
 		o['mode'] ?: '0755'
 		return {
-			execute "test -d ${path}", test: { code ->
+			execute "setTest -d ${path}", test: { code ->
 				if (code == 0)
 					log 'Skipping existing directory.'
 				else
@@ -119,14 +221,31 @@ public class Standard
 		}
 	}
 
-	public static abstract class UserParams
+	private trait Sudoable
+	{
+		private String sudo;
+
+		private void _setSudo(final String sudoer)
+		{
+			this.sudo = "sudo -i -u ${sudoer}"
+		}
+
+		private void _setSudo(final boolean sudo)
+		{
+			this.sudo = sudo ? 'sudo -i' : ''
+		}
+	}
+
+	public static final class UserParams
+		extends Params
+		implements Sudoable
 	{
 		public String comment;
 		public String password;
 		public String[] sshKeys;
 		public String groupName;
 		public String[] groups;
-		public String sudo;
+		public String shell;
 
 		public UserParams setComment(final String comment)
 		{
@@ -158,22 +277,72 @@ public class Standard
 			return this;
 		}
 
+		public UserParams setShell(final String shell)
+		{
+			this.shell = shell;
+			return this;
+		}
+
 		public UserParams setSudo(final String sudoer)
 		{
-			this.sudo = "sudo -i -u ${sudoer}"
+			_setSudo(sudoer);
 			return this;
 		}
 
 		public UserParams setSudo(final boolean sudo)
 		{
-			this.sudo = sudo ? 'sudo -i' : ''
+			_setSudo(sudo);
 			return this
 		}
 	}
 
 	public static UserParams user(final String name)
 	{
-
+		final UserParams p = new UserParams();
+		p.setCallback({
+			execute("id ${name}").setTest({ code, out, err ->
+				if (code == 0)
+				{
+					log("user ${name} exists.")
+					return;
+				}
+				execute("useradd ${name} \\\n"+
+					"  --create-home \\\n"+
+					"  --user-group \\\n"+
+					(p.comment ? " --comment ${bashEscape p.comment} \\\n" : "")+
+					(p.password ? " --password ${bashEscape p.password} \\\n" : "")+
+					" --shell ${p.shell ?: "/bin/bash"} \\\n")
+					.sudo = p.sudo;
+				if (p.groupName != null)
+					execute("usermod -g ${p.groupName} ${name}")
+						.sudo = p.sudo;
+				if (p.groups.length > 0)
+					for (final String group : p.groups)
+						execute("usermod -a -G ${group} ${name}")
+							.sudo = p.sudo;
+				if (p.sshKeys.length > 0)
+					for (final String key : p.sshKeys)
+					{
+						directory("\$(echo ~${name})/.ssh/")
+							.setRecursive(true)
+							.setMode('0700')
+							.sudo = p.sudo;
+						execute("touch \$(echo ~${name})/.ssh/authorized_keys")
+							.sudo = p.sudo;
+						chmod("\$(echo ~${name})/.ssh/authorized_keys")
+							.setMode('0600')
+							.sudo = p.sudo;
+						execute("echo ${bashEscape key} | sudo tee -a \$(echo ~${name})/.ssh/authorized_keys >/dev/null")
+							.sudo = p.sudo;
+						chown("\$(echo ~${name})/.ssh/")
+							.setRecursive(true)
+							.setOwner(name)
+							.setGroup(name)
+							.sudo = p.sudo;
+					}
+			});
+		});
+		return p;
 	}
 
 	public static Callback0 template(final String path)
