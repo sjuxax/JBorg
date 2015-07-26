@@ -45,26 +45,33 @@ public class Standard
         };
     }
 
-    private trait SudoAbility
-    {
-        protected String sudo
-    }
-    private trait OwnAbility
-    {
-        protected String user
-        protected String group
-    }
-
-    private trait ModeAbility
-    {
-        protected String mode
-    }
-
     public static final class DirectoryParams
         extends Params
-        implements SudoAbility, OwnAbility, ModeAbility
     {
-        public DirectoryParams setMode(final String mode)
+        public String sudo;
+        public String owner;
+        public String group;
+        public String mode;
+
+        public DirectoryParams setSudo(sudo)
+        {
+            this.sudo = sudo
+            return this
+        }
+
+        public DirectoryParams setOwner(owner)
+        {
+            this.owner = owner
+            return this
+        }
+
+        public DirectoryParams setGroup(group)
+        {
+            this.group = group
+            return this
+        }
+
+        public DirectoryParams setMode(mode)
         {
             this.mode = mode
             return this
