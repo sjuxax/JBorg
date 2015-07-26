@@ -52,7 +52,6 @@ public class Standard
         }
     }
 
-
     public static Callback0 chmod(final Map o = [:], final String path)
     {
         return { execute "chmod ${o['mode']} ${path}" }
@@ -60,7 +59,16 @@ public class Standard
 
     public static Callback0 directory(final Map o = [:], final String path)
     {
-        return { execute "mkdir -p ${path}" }
+        o['mode'] ?: '0755'
+        return {
+            execute "test -d ${path}", test: { code ->
+                if (code == 0)
+                    log 'Skipping existing directory.'
+                else
+                    execute
+            }
+            execute "mkdir -p ${path}"
+        }
     }
 
     public static void execute(final Map o = [:], final String cmd)
