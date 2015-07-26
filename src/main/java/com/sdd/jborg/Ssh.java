@@ -50,7 +50,12 @@ public class Ssh
 		}
 	}
 
-	public void cmd(final String command)
+	public interface CmdCallback
+	{
+		void call(final int code, final String out, final String err);
+	}
+
+	public void cmd(final String command, final CmdCallback cb)
 	{
 		Session session = null;
 		try
@@ -67,6 +72,7 @@ public class Ssh
 				Logger.stderr(stdErr);
 			final int code = cmd.getExitStatus();
 			Logger.info("remote process exit code: " + code);
+			cb.call(code, stdOut, stdErr);
 		}
 		catch (ConnectionException e)
 		{

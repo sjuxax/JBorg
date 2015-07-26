@@ -14,7 +14,7 @@ public final class CoffeeScript
 
 	static
 	{
-		final String script = FileSystem.readFile("coffee-script-1.8.0/coffee-script.min.js");
+		final String script = FileSystem.readFileToString("coffee-script-1.8.0/coffee-script.min.js");
 		final ScriptEngine nashorn = new ScriptEngineManager().getEngineByName("nashorn");
 		try
 		{
@@ -42,7 +42,7 @@ public final class CoffeeScript
 	}
 
 	public static JsonObject readCsonFileToJsonObject(final String file) {
-		final String js = CoffeeScript.toJs(FileSystem.readFile(file));
+		final String js = CoffeeScript.toJs(FileSystem.readFileToString(file));
 		return new JsonObject(js.substring(1, js.length()-3));
 	}
 }

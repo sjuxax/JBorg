@@ -1,6 +1,19 @@
 package com.sdd.jborg
 
 import com.sdd.jborg.util.Callback0
+import com.sdd.jborg.util.Crypt
+import com.sdd.jborg.util.FileSystem;
+
+import javax.crypto.Cipher
+import javax.crypto.SecretKey
+import javax.crypto.SecretKeyFactory
+import javax.crypto.spec.DESedeKeySpec
+import java.nio.charset.StandardCharsets
+import java.security.InvalidKeyException
+import java.security.NoSuchAlgorithmException
+import java.security.spec.InvalidKeySpecException
+import java.util.regex.Matcher
+import java.util.regex.Pattern
 
 /**
  * Standard fields and methods every script should have in scope.
@@ -17,9 +30,6 @@ public class Standard
 
 	private static Queue<Callback0> queue = new ArrayDeque<>();
 
-	public static final int SERIAL = 1;
-	public static final int PARALLEL = 2;
-
 	public static void then(final Callback0 cb)
 	{
 		queue.add(cb);
@@ -33,10 +43,16 @@ public class Standard
 		}
 	}
 
-	/**
-	 * methods that may only be called asynchronously
-	 * e.g., from within second loop
-	 */
+	private final Pattern BASH_PATTERN = Pattern.compile("([^0-9a-z-])", Pattern.CASE_INSENSITIVE);
+	public String bashEscape(final String cmd)
+	{
+		final Matcher matcher = BASH_PATTERN.matcher(cmd);
+		matcher.replaceAll("\\\$1");
+	}
+
+
+	// methods called once connected
+
 	public static void die(final String reason)
 	{
 		Logger.stderr("Aborting. Reason: "+ reason);
@@ -48,9 +64,54 @@ public class Standard
 		Logger.info(msg);
 	}
 
+
+	// encryption
+	private static final String CIPHER_TYPE = "AES/CBC/PKCS5Padding";
+	private static final SecretKey secret = readSecret();
+	private static SecretKey readSecret()
+	{
+		try {
+			return SecretKeyFactory
+				.getInstance("DESede")
+				.generateSecret(new DESedeKeySpec(
+					FileSystem.readFileToBytes("secret")));
+		}
+		catch (InvalidKeySpecException | NoSuchAlgorithmException | InvalidKeyException e)
+		{
+			e.printStackTrace();
+			Logger.stderr("Unable to read secret key file");
+		}
+		return null;
+	}
+
+	public static String encrypt(final String s)
+	{
+		try
+		{
+			final Cipher cipher = Cipher.getInstance(CIPHER_TYPE);
+			cipher.init(Cipher.ENCRYPT_MODE, secret);
+			return Base64.getEncoder().encodeToString(cipher.doFinal(s.getBytes(StandardCharsets.UTF_8)));
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			return "";
+		}
+	}
+
 	public static String decrypt(final String s)
 	{
-		return "";
+		try
+		{
+			final Cipher cipher = Cipher.getInstance(CIPHER_TYPE);
+			cipher.init(Cipher.DECRYPT_MODE, secret);
+			return new String(cipher.doFinal(Base64.getDecoder().decode(s)));
+		}
+		catch (Exception e)
+		{
+			e.printStackTrace();
+			return "";
+		}
 	}
 
 	public static abstract class Params
@@ -68,27 +129,27 @@ public class Standard
 		}
 	}
 
-
 	public static final class ExecuteParams
 		extends Params
 		implements Sudoable
 	{
-		public static interface ExecuteTestCallback
-		{
-			void call(final int code, final String out, final String err);
-		}
+		private Ssh.CmdCallback testCb;
 
-		private ExecuteTestCallback testCb;
-
-		public ExecuteParams setTest(final ExecuteTestCallback testCb)
+		public ExecuteParams setTest(final Ssh.CmdCallback testCb)
 		{
 			this.testCb = testCb;
 			return this;
 		}
 
-		public ExecuteParams setSudo(final String sudoer)
+		public ExecuteParams setSudo(final String cmd)
 		{
-			_setSudo(sudoer);
+			_setSudo(cmd);
+			return this;
+		}
+
+		public ExecuteParams setSudoUser(final String sudoer)
+		{
+			_setSudoUser(sudoer);
 			return this;
 		}
 
@@ -103,15 +164,23 @@ public class Standard
 	{
 		final ExecuteParams p = new ExecuteParams();
 		p.setCallback({
-			ssh.cmd(cmd);
+			// TODO: implement retries
+			// TODO: implement expect assertions
+			ssh.cmd(cmd, { code, out, err ->
+				if (p.testCb != null)
+					p.testCb.call(code, out, err);
+			});
 		});
 		return p;
 	}
 
 	public static final class ChownParams
 		extends Params
-		implements Sudoable, Ownable
+		implements Sudoable
 	{
+		public String owner;
+		public String group;
+
 		public ChownParams setOwner(final String owner)
 		{
 			this.owner = owner;
@@ -124,9 +193,15 @@ public class Standard
 			return this;
 		}
 
-		public ChownParams setSudo(final String sudoer)
+		public ChownParams setSudo(final String cmd)
 		{
-			_setSudo(sudoer);
+			_setSudo(cmd);
+			return this;
+		}
+
+		public ChownParams setSudoUser(final String sudoer)
+		{
+			_setSudoUser(sudoer);
 			return this;
 		}
 
@@ -137,38 +212,65 @@ public class Standard
 		}
 	}
 
-	public static ChownParams chown(final Map o = [:], final String path)
+	public static ChownParams chown(final String path)
 	{
 		final ChownParams p = new ChownParams();
 		if (p.owner == null || p.group == null)
-			die "chown owner and group are required."
+			die("chown owner and group are required.");
 		p.setCallback({
 			execute "chown ${o['owner']}.${o['group']} ${path}"
 		});
 		return p;
 	}
 
-	public static Callback0 chmod(final Map o = [:], final String path)
-	{
-		return { execute "chmod ${o['mode']} ${path}" }
-	}
-
-	private trait Ownable
-	{
-		public String owner;
-		public String group;
-	}
-
-	private trait Modeable
+	public static final class ChmodParams
+		extends Params
+		implements Sudoable
 	{
 		public String mode;
+
+		public ChownParams setMode(final String mode)
+		{
+			this.mode = mode;
+			return this;
+		}
+
+		public ChownParams setSudo(final String cmd)
+		{
+			_setSudo(cmd);
+			return this;
+		}
+
+		public ChownParams setSudoUser(final String sudoer)
+		{
+			_setSudoUser(sudoer);
+			return this;
+		}
+
+		public ChownParams setSudo(final boolean sudo)
+		{
+			_setSudo(sudo);
+			return this
+		}
+	}
+
+	public static ChmodParams chmod(final String path)
+	{
+		final ChmodParams p = new ChmodParams();
+		p.setCallback({
+			execute("chmod ${p.mode} ${path}");
+		});
+		return p;
 	}
 
 	public static final class DirectoryParams
 		extends Params
-		implements Sudoable, Ownable, Modeable
+		implements Sudoable
 	{
 		public boolean recursive;
+		public String owner;
+		public String group;
+		public String mode;
 
 		public DirectoryParams setOwner(final String owner)
 		{
@@ -209,23 +311,38 @@ public class Standard
 
 	public static DirectoryParams directory(final String path)
 	{
-		o['mode'] ?: '0755'
-		return {
-			execute "setTest -d ${path}", test: { code ->
+		final DirectoryParams p = new DirectoryParams();
+		p.mode ?: '0755'
+		p.setCallback({
+			execute("test -d ${path}").setTest({ code, out, err ->
 				if (code == 0)
-					log 'Skipping existing directory.'
+				{
+					log("Skipping existing directory.");
+					return;
+				}
 				else
-					execute
-			}
-			execute "mkdir -p ${path}"
-		}
+					execute("");
+			});
+			execute("mkdir -p ${path}");
+		});
+		return p;
 	}
 
 	private trait Sudoable
 	{
 		private String sudo;
 
-		private void _setSudo(final String sudoer)
+		public String getSudo()
+		{
+			return sudo;
+		}
+
+		private void _setSudo(final String cmd)
+		{
+			this.sudo = cmd;
+		}
+
+		private void _setSudoUser(final String sudoer)
 		{
 			this.sudo = "sudo -i -u ${sudoer}"
 		}
@@ -283,9 +400,15 @@ public class Standard
 			return this;
 		}
 
-		public UserParams setSudo(final String sudoer)
+		public UserParams setSudo(final String cmd)
 		{
-			_setSudo(sudoer);
+			_setSudo(cmd);
+			return this;
+		}
+
+		public UserParams setSudoUser(final String sudoer)
+		{
+			_setSudoUser(sudoer);
 			return this;
 		}
 
@@ -312,33 +435,33 @@ public class Standard
 					(p.comment ? " --comment ${bashEscape p.comment} \\\n" : "")+
 					(p.password ? " --password ${bashEscape p.password} \\\n" : "")+
 					" --shell ${p.shell ?: "/bin/bash"} \\\n")
-					.sudo = p.sudo;
+					.setSudo(p.getSudo());
 				if (p.groupName != null)
 					execute("usermod -g ${p.groupName} ${name}")
-						.sudo = p.sudo;
+						.setSudo(p.getSudo());
 				if (p.groups.length > 0)
 					for (final String group : p.groups)
 						execute("usermod -a -G ${group} ${name}")
-							.sudo = p.sudo;
+							.setSudo(p.getSudo());
 				if (p.sshKeys.length > 0)
 					for (final String key : p.sshKeys)
 					{
 						directory("\$(echo ~${name})/.ssh/")
 							.setRecursive(true)
 							.setMode('0700')
-							.sudo = p.sudo;
+							.setSudo(p.getSudo());
 						execute("touch \$(echo ~${name})/.ssh/authorized_keys")
-							.sudo = p.sudo;
+							.setSudo(p.getSudo());
 						chmod("\$(echo ~${name})/.ssh/authorized_keys")
 							.setMode('0600')
-							.sudo = p.sudo;
+							.setSudo(p.getSudo());
 						execute("echo ${bashEscape key} | sudo tee -a \$(echo ~${name})/.ssh/authorized_keys >/dev/null")
-							.sudo = p.sudo;
+							.setSudo(p.getSudo());
 						chown("\$(echo ~${name})/.ssh/")
 							.setRecursive(true)
 							.setOwner(name)
 							.setGroup(name)
-							.sudo = p.sudo;
+							.setSudo(p.getSudo());
 					}
 			});
 		});
