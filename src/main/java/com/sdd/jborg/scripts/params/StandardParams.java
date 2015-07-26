@@ -4,7 +4,7 @@ import com.sdd.jborg.Ssh;
 import com.sdd.jborg.util.Callback0;
 import com.sdd.jborg.scripts.Standard.RemoteServerValidationException;
 
-public class Standard
+public class StandardParams
 {
 	public static class Params
 	{

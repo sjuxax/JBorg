@@ -7,6 +7,7 @@ import com.sdd.jborg.Server;
 import com.sdd.jborg.Ssh;
 import com.sdd.jborg.util.Callback0;
 import com.sdd.jborg.util.FileSystem;
+import org.reflections.Reflections;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
@@ -18,16 +19,51 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
 import java.util.Base64;
 import java.util.Queue;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static com.sdd.jborg.scripts.params.Standard.*;
+import static com.sdd.jborg.scripts.params.StandardParams.*;
 
 /**
  * Standard fields and methods every script should have in scope.
  */
 public class Standard
 {
+	/**
+	 * Base Script class all scripts must extend.
+	 */
+	public static abstract class Script
+	{
+		private static final Set<Class<? extends Script>> scripts = new Reflections().getSubTypesOf(Script.class);
+
+		public static Script findMatch()
+		{
+			for (Class<? extends Script> script : scripts)
+			{
+				final Script instance;
+				try
+				{
+					instance = script.newInstance();
+					if (instance.match())
+					{
+						return instance;
+					}
+				}
+				catch (InstantiationException|IllegalAccessException e)
+				{
+					e.printStackTrace();
+				}
+			}
+			return null;
+		}
+
+		abstract public boolean match();
+
+		abstract public void assimilate();
+	}
+
+
 	// Global Attributes
 
 	public static final Networks networks = new Networks(CoffeeScript.readCsonFileToJsonObject("networks.coffee"));
