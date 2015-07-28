@@ -290,15 +290,15 @@ public class Standard
 							.setSudoCmd(p.getSudoCmd())
 							.callImmediate();
 					}
-
-					if (empty(p.getOwner()) || empty(p.getGroup()))
+					//Check if user exists
+					if (!empty(p.getOwner()) || !empty(p.getGroup()))
 						chown(path)
 							.setOwner(p.getOwner())
 							.setGroup(p.getGroup())
 							.setSudoCmd(p.getSudoCmd())
 							.callImmediate();
 
-					if (empty(p.getMode()))
+					if (!empty(p.getMode()))
 						chmod(path)
 							.setMode(p.getMode())
 							.setSudoCmd(p.getSudoCmd())
@@ -347,14 +347,14 @@ public class Standard
 							execute("touch $(echo ~" + name + ")/.ssh/authorized_keys")
 								.setSudoCmd(p.getSudoCmd())
 								.callImmediate();
-							chmod("$(echo ~" + name + "/.ssh/authorized_keys")
+							chmod("$(echo ~" + name + ")/.ssh/authorized_keys")
 								.setMode("0600")
 								.setSudoCmd(p.getSudoCmd())
 								.callImmediate();
 							execute("echo " + bashEscape(key) + " | sudo tee -a $(echo ~" + name + ")/.ssh/authorized_keys >/dev/null")
 								.setSudoCmd(p.getSudoCmd())
 								.callImmediate();
-							chown("$(echo ~" + name + "/.ssh/")
+							chown("$(echo ~" + name + ")/.ssh/")
 								.setRecursive(true)
 								.setOwner(name)
 								.setGroup(name)
