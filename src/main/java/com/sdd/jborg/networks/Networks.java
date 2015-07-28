@@ -42,10 +42,59 @@ public class Networks
 	}
 
 
+
+
+
+
+
+
+
+
+
+
+	public static abstract class MoreCloneable
+		implements Cloneable
+	{
+		@SuppressWarnings("unchecked")
+		public <T> T cloneIt()
+		{
+			try
+			{
+				return (T) super.clone();
+			}
+			catch (CloneNotSupportedException e)
+			{
+				e.printStackTrace();
+				return null;
+			}
+		}
+	}
+
+	private static class Property
+		extends MoreCloneable
+	{
+		private Property parent;
+		private List<Property> children;
+
+		void setParent(final Property parent) {
+			this.parent = parent;
+		}
+
+		void addChild(final Property child)
+		{
+			child.setParent(this);
+			children.add(child);
+		}
+	}
+
+
+
 	public enum TimeZoneName
 	{
 		GMT
 	}
+
+
 
 	public static class ChainableCollection<T>
 	{
@@ -58,87 +107,27 @@ public class Networks
 		}
 	}
 
-	public static final ChainableCollection<Datacenter> DATACENTERS = new ChainableCollection<>();
-
-	public static final class Datacenter
-	{
-		private final Name name;
-		private Provider provider;
-		private Tld tld;
-
-		public Datacenter(final Name name)
-		{
-			this.name = name;
-		}
-
-		public Datacenter setProvider(final Provider provider)
-		{
-			this.provider = provider;
-			return this;
-		}
-
-		public Datacenter setTld(final Tld tld)
-		{
-			this.tld = tld;
-			return this;
-		}
-
-		public Datacenter getProvider(final Callback1<AwsProvider> cb)
-		{
-			// TODO: determine subtype automatically
-			cb.call((AwsProvider) provider);
-			return this;
-		}
-
-		private final ChainableCollection<Group> GROUPS = new ChainableCollection<>();
-
-		public interface Name {}
-		public interface Env {}
-		public interface Tld {}
-
-		public static final class Group
-		{
-			public interface Name {}
-
-			// TODO: determine provider subclass dynamically
-			private AwsProvider awsProvider;
-			private Env env;
-			private String awsSubnet;
-			private final Name name;
-
-			public Group(final Name datacenterGroupName)
-			{
-				this.name = datacenterGroupName;
-			}
-
-			public Group setEnv(final Env env)
-			{
-				this.env = env;
-				return this;
-			}
-
-			public Group getProvider(final Callback1<AwsProvider> cb)
-			{
-				cb.call(awsProvider);
-				return this;
-			}
-		}
-
-		public Datacenter addGroup(final Group datacenterGroup)
-		{
-			// TODO: clone provider
-			GROUPS.add(datacenterGroup);
-			return this;
-		}
-	}
+	public static final ChainableCollection<Provider> PROVIDERS = new ChainableCollection<>();
 
 	public static abstract class Provider
+		extends Property
 	{
 		public enum Type
 		{
 			AWS,
 			OPENSTACK,
 			RACKSPACE;
+		}
+
+		private final ChainableCollection<Datacenter> datacenters = new ChainableCollection<>();
+
+		public Provider addDatacenter(final Datacenter datacenter)
+		{
+			// clone provider for this datacenter to extend
+			// TODO: determine type automatically
+			datacenter.setProvider(this.<AwsProvider>cloneIt());
+			datacenters.add(datacenter);
+			return this;
 		}
 	}
 
@@ -153,23 +142,9 @@ public class Networks
 		private Size size;
 		private String keyFileName;
 
-		public AwsProvider clone()
-		{
-			// TODO: finish this
-			try
-			{
-				super.clone();
-			}
-			catch (CloneNotSupportedException e)
-			{
-				e.printStackTrace();
-			}
-			return this;
-		}
-
 		public enum Region
 		{
-			US_WEST_2;
+			US_WEST_2, US_EAST_1;
 
 			public String toString()
 			{
@@ -179,7 +154,7 @@ public class Networks
 
 		public enum Zone
 		{
-			US_WEST_2A;
+			US_WEST_2A, US_EAST_1D;
 
 			public String toString()
 			{
@@ -255,14 +230,128 @@ public class Networks
 		}
 	}
 
-	public static final class OpenStackProvider extends Provider
-	{
 
+
+	public static final class Datacenter
+		extends Property
+	{
+		public interface Name {}
+		public interface Env {}
+		public interface Tld {}
+
+		private final Name name;
+		private Provider provider;
+		private Tld tld;
+
+		public Datacenter(final Name name)
+		{
+			this.name = name;
+		}
+
+		public Datacenter setProvider(final Provider provider)
+		{
+
+			this.provider = provider;
+			return this;
+		}
+
+		public Datacenter setTld(final Tld tld)
+		{
+			this.tld = tld;
+			return this;
+		}
+
+		public Datacenter getProvider(final Callback1<AwsProvider> cb)
+		{
+			// TODO: determine subtype automatically
+			cb.call((AwsProvider) provider);
+			return this;
+		}
+
+		private final ChainableCollection<Group> groups = new ChainableCollection<>();
+
+		public static final class Group
+			extends Property
+		{
+			public interface Name {}
+
+			// TODO: determine provider subclass dynamically
+			private Env env;
+			private String awsSubnet;
+			private final Name name;
+			private Provider provider;
+
+			public Group(final Name name)
+			{
+				this.name = name;
+			}
+
+			public Group setEnv(final Env env)
+			{
+				this.env = env;
+				return this;
+			}
+
+			public Group setProvider(final Provider provider)
+			{
+				this.provider = provider;
+				return this;
+			}
+
+			public Group getProvider(final Callback1<AwsProvider> cb)
+			{
+				cb.call((AwsProvider) provider);
+				return this;
+			}
+
+			private final ChainableCollection<Instance> instances = new ChainableCollection<>();
+
+			public static final class Instance
+				extends Property
+			{
+				public interface Name {}
+
+				private final Name name;
+				// TODO: determine provider subclass dynamically
+				private Provider provider;
+
+				public Instance(final Name name)
+				{
+					this.name = name;
+				}
+
+				public Instance setProvider(final Provider provider)
+				{
+					this.provider = provider;
+					return this;
+				}
+
+				public Instance getProvider(final Callback1<AwsProvider> cb)
+				{
+					cb.call((AwsProvider) provider);
+					return this;
+				}
+			}
+
+			public Group addInstance(final Instance instance)
+			{
+				// clone provider for this group to extend
+				// TODO: determine type automatically
+				instance.setProvider(this.provider.<AwsProvider>cloneIt());
+				instances.add(instance);
+				return this;
+			}
+		}
+
+		public Datacenter addGroup(final Group group)
+		{
+			// clone provider for this group to extend
+			// TODO: determine type automatically
+			group.setProvider(this.provider.<AwsProvider>cloneIt());
+			groups.add(group);
+			return this;
+		}
 	}
 
-	public static final class RackspaceProvider extends Provider
-	{
-
-	}
 }
 
