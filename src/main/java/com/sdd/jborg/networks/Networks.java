@@ -39,6 +39,12 @@ public class Networks
 		return meta.getObject("ssh").getString("key");
 	}
 
+
+	public enum TimeZoneName
+	{
+		GMT
+	}
+
 	public static class ChainableCollection<T>
 	{
 		private final List<T> list = new ArrayList<>();
@@ -54,11 +60,11 @@ public class Networks
 
 	public static final class Datacenter
 	{
-		private final DatacenterName name;
+		private final Name name;
 		private Provider provider;
-		private TldName tld;
+		private Tld tld;
 
-		public Datacenter(final DatacenterName name)
+		public Datacenter(final Name name)
 		{
 			this.name = name;
 		}
@@ -69,45 +75,52 @@ public class Networks
 			return this;
 		}
 
-		public Datacenter setTld(final TldName tld)
+		public Datacenter setTld(final Tld tld)
 		{
 			this.tld = tld;
 			return this;
 		}
 
-		private final ChainableCollection<DatacenterGroup> GROUPS = new ChainableCollection<>();
+		private final ChainableCollection<Group> GROUPS = new ChainableCollection<>();
 
-		public Datacenter addGroup(final DatacenterGroup datacenterGroup)
+		public interface Name {}
+		public interface Env {}
+		public interface Tld {}
+
+		public static final class Group
+		{
+			public interface Name {}
+
+			private final Name name;
+
+			public Group(final Name datacenterGroupName)
+			{
+				this.name = datacenterGroupName;
+			}
+		}
+
+
+		public Datacenter addGroup(final Group datacenterGroup)
 		{
 			GROUPS.add(datacenterGroup);
 			return this;
 		}
 	}
 
-	public enum ProviderTypes
+	public static abstract class Provider
 	{
-		AWS,
-		OPENSTACK,
-		RACKSPACE;
+		public enum Type
+		{
+			AWS,
+			OPENSTACK,
+			RACKSPACE;
+		}
 	}
 
-	public enum TimeZoneName
-	{
-		GMT
-	}
-
-	public interface DatacenterName {}
-	public interface DatacenterGroupName {}
-	public interface DatacenterEnvName {}
-	public interface TldName {}
-
-	public interface Provider
+	public static final class AwsProvider extends Provider
 	{
 
-	}
 
-	public static final class AWSProvider implements Provider
-	{
 		private Region region;
 		private Zone zone;
 		private String image;
@@ -142,43 +155,33 @@ public class Networks
 			}
 		}
 
-		public AWSProvider setRegion(final Region region)
+		public AwsProvider setRegion(final Region region)
 		{
 			this.region = region;
 			return this;
 		}
 
-		public AWSProvider setZone(final Zone zone)
+		public AwsProvider setZone(final Zone zone)
 		{
 			this.zone = zone;
 			return this;
 		}
 
-		public AWSProvider setImage(final String image)
+		public AwsProvider setImage(final String image)
 		{
 			this.image = image;
 			return this;
 		}
 	}
 
-	public static final class OpenStackProvider implements Provider
+	public static final class OpenStackProvider extends Provider
 	{
 
 	}
 
-	public static final class RackspaceProvider implements Provider
+	public static final class RackspaceProvider extends Provider
 	{
 
-	}
-
-	public static final class DatacenterGroup
-	{
-		private final DatacenterGroupName datacenterGroupName;
-
-		public DatacenterGroup(final DatacenterGroupName datacenterGroupName)
-		{
-			this.datacenterGroupName = datacenterGroupName;
-		}
 	}
 }
 
