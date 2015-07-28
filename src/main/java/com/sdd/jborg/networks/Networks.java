@@ -91,6 +91,11 @@ public class Networks
 		RACKSPACE;
 	}
 
+	public enum TimeZoneName
+	{
+		GMT
+	}
+
 	public interface DatacenterName {}
 	public interface DatacenterGroupName {}
 	public interface DatacenterEnvName {}
@@ -109,12 +114,32 @@ public class Networks
 
 		public enum Region
 		{
-			US_WEST_2
+			US_WEST_2;
+
+			public String toString()
+			{
+				return name().toLowerCase().replaceAll("_", "-");
+			}
 		}
 
 		public enum Zone
 		{
-			US_WEST_2A
+			US_WEST_2A;
+
+			public String toString()
+			{
+				return name().toLowerCase().replaceAll("_", "-");
+			}
+		}
+
+		public enum Size
+		{
+			T2_MICRO;
+
+			public String toString()
+			{
+				return name().toLowerCase().replaceAll("_", ".");
+			}
 		}
 
 		public AWSProvider setRegion(final Region region)
