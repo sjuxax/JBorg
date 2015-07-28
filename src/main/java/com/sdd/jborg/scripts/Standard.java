@@ -2,7 +2,7 @@ package com.sdd.jborg.scripts;
 
 import com.sdd.jborg.CoffeeScript;
 import com.sdd.jborg.Logger;
-import com.sdd.jborg.Networks;
+import com.sdd.jborg.networks.Networks;
 import com.sdd.jborg.Server;
 import com.sdd.jborg.Ssh;
 import com.sdd.jborg.util.Callback0;
