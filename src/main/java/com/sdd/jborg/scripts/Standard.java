@@ -13,6 +13,7 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import javax.xml.bind.ValidationException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -50,7 +51,7 @@ public class Standard
 						return instance;
 					}
 				}
-				catch (InstantiationException|IllegalAccessException e)
+				catch (InstantiationException | IllegalAccessException e)
 				{
 					e.printStackTrace();
 				}
@@ -247,10 +248,10 @@ public class Standard
 				throw new DeveloperInputValidationException("chown owner and group are required.");
 
 			execute("chown " +
-				        (p.getRecursive() ? "-R " : "") +
-				        p.getOwner() +
-				        "." + p.getGroup() +
-				        " " + path)
+				(p.getRecursive() ? "-R " : "") +
+				p.getOwner() +
+				"." + p.getGroup() +
+				" " + path)
 				.setSudoCmd(p.getSudoCmd())
 				.callImmediate();
 		});
@@ -263,8 +264,8 @@ public class Standard
 				throw new DeveloperInputValidationException("mode is required.");
 
 			execute("chmod " +
-				        p.getMode() +
-				        " " + path)
+				p.getMode() +
+				" " + path)
 				.setSudoCmd(p.getSudoCmd())
 				.callImmediate();
 		});
@@ -285,8 +286,8 @@ public class Standard
 					else
 					{
 						execute("mkdir " +
-							        (p.getRecursive() ? " -p" : "") +
-							        " " + path)
+							(p.getRecursive() ? " -p" : "") +
+							" " + path)
 							.setSudoCmd(p.getSudoCmd())
 							.callImmediate();
 					}
@@ -317,11 +318,11 @@ public class Standard
 						throw new RemoteServerValidationException("user " + name + " exists.");
 
 					execute("useradd " + name + " \\\n" +
-						        "  --create-home \\\n" +
-						        "  --user-group \\\n" +
-						        (!empty(p.getComment()) ? "  --comment " + bashEscape(p.getComment()) + " \\\n" : "") +
-						        (!empty(p.getPassword()) ? "  --password " + bashEscape(p.getPassword()) + " \\\n" : "") +
-						        ("  --shell " + (empty(p.getShell()) ? "/bin/bash" : "")))
+						"  --create-home \\\n" +
+						"  --user-group \\\n" +
+						(!empty(p.getComment()) ? "  --comment " + bashEscape(p.getComment()) + " \\\n" : "") +
+						(!empty(p.getPassword()) ? "  --password " + bashEscape(p.getPassword()) + " \\\n" : "") +
+						("  --shell " + (empty(p.getShell()) ? "/bin/bash" : "")))
 						.setSudoCmd(p.getSudoCmd())
 						.callImmediate();
 
@@ -380,10 +381,61 @@ public class Standard
 		};
 	}
 
-	public static Callback0 remoteFileExists(final String path)
+	public static RemoteFileExistsParams remoteFileExists(final String path)
 	{
-		return () -> {
+		private String localChecksum = "";
 
-		};
+		return chainForCb(new RemoteFileExistsParams(), p -> {
+				if (p.getCompareLocalFile() != true && empty(p.getCompareChecksum()))
+				{
+					execute("stat " + path)
+						.setSudoCmd(p.getSudoCmd())
+						.setTest((code, out, err) -> {
+							if (code == 0)
+							{
+								log("Remote file " + path + " exists.");
+								//TODO: Figure out true callback
+							}
+							else
+							{
+								//TODO: False callback
+							}
+						});
+				}
+				else
+				{
+					if (p.getCompareLocalFile())
+					{
+						//p.setCompareChecksum(localChecksum)
+						//TODO: Create checksum function
+					}
+					execute("sha256sum " + path)
+						.setSudoCmd(p.getSudoCmd())
+						.setTest(((code, out, err) -> {
+							final String[] matches;
+							matches = out.matches("/[a-f0-9]{64}/")
+							if (!empty(matches))
+							{
+								if (matches[0] == localChecksum)
+								{
+									log("Remote file checksum " + matches[0] + " matches expected checksum " + localChecksum + ".");
+									//TODO: True callback
+								}
+								else
+								{
+									log("Remote file checksum " + matches[0] + " does not match expected checksum " + localChecksum + ".");
+									//TODO: False callback
+								}
+							}
+							else
+							{
+								log("Unexpected problems reading remote file checksum.  Assuming remote file checksum does not match expected checksum " + localChecksum + ".");
+								//TODO: False callback
+							}
+						}));
+				}
+			}
+
+		);
 	}
 }

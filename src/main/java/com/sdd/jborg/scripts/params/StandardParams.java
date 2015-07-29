@@ -121,6 +121,23 @@ public class StandardParams
 		}
 	}
 
+	private static class Comparable
+	{
+		private boolean compareLocalFile = false;
+
+		private String compareChecksum;
+
+		public boolean getCompareLocalFile() { return compareLocalFile; }
+
+		public void setCompareLocalFile(final boolean compareLocalFile) { this.compareLocalFile = compareLocalFile;}
+
+		public String getCompareChecksum() { return compareChecksum; }
+
+		public void setCompareChecksum(final String compareChecksum) {
+			this.compareChecksum = compareChecksum;
+		}
+	}
+
 	private static class Recursable
 	{
 		private boolean recursive = false;
@@ -445,6 +462,82 @@ public class StandardParams
 		public UserParams setSudo(final boolean sudo)
 		{
 			sudoable.setSudo(sudo);
+			return this;
+		}
+	}
+
+	public static final class RemoteFileExistsParams extends Params
+	{
+		private String path = "";
+		private Comparable comparable = new Comparable();
+		private Sudoable sudoable = new Sudoable();
+
+		public String getPath() {
+			return path;
+		}
+
+		public RemoteFileExistsParams setPath(final String path)
+		{
+			this.path = path;
+			return this;
+		}
+
+		public String getSudoCmd()
+		{
+			return sudoable.getSudoCmd();
+		}
+
+		public ChmodParams setSudoCmd(final String cmd)
+		{
+			sudoable.setSudoCmd(cmd);
+			return this;
+		}
+
+		public ChmodParams setSudoAsUser(final String sudoer)
+		{
+			sudoable.setSudoAsUser(sudoer);
+			return this;
+		}
+
+		public ChmodParams setSudo(final boolean sudo)
+		{
+			sudoable.setSudo(sudo);
+			return this;
+		}
+
+		private Comparable comparable = new Comparable();
+
+		public boolean getCompareLocalFile()
+		{
+			return comparable.getCompareLocalFile();
+		}
+
+		public Comparable setCompareLocalFile(final boolean compareLocalFile)
+		{
+			comparable.setCompareLocalFile(compareLocalFile);
+			return comparable;
+		}
+
+		public String getCompareChecksum() {
+			return comparable.getCompareChecksum();
+		}
+
+		public Comparable setCompareChecksum(final String compareChecksum)
+		{
+			comparable.setCompareChecksum(compareChecksum);
+			return comparable;
+		}
+
+		private Modeable modeable = new Modeable();
+
+		public String getMode()
+		{
+			return modeable.getMode();
+		}
+
+		public RemoteFileExistsParams setMode(String mode)
+		{
+			modeable.setMode(mode);
 			return this;
 		}
 	}
