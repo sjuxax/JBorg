@@ -51,6 +51,8 @@ public class StandardParams
 	{
 		private Ssh.CmdCallback testCb;
 		private Sudoable sudoable = new Sudoable();
+		private int retryTimes;
+		private int expectCode;
 
 		public ExecuteParams setTest(final ScriptRemoteTestCallback1 testCb)
 		{
@@ -93,6 +95,18 @@ public class StandardParams
 			sudoable.setSudo(sudo);
 			return this;
 		}
+
+		public ExecuteParams setRetry(final int times)
+		{
+			this.retryTimes = times;
+			return this;
+		}
+
+		public ExecuteParams expect(final int code)
+		{
+			this.expectCode = code;
+			return this;
+		}
 	}
 
 	private static class Ownable
@@ -118,6 +132,23 @@ public class StandardParams
 		public void setGroup(final String group)
 		{
 			this.group = group;
+		}
+	}
+
+	private static class Comparable
+	{
+		private boolean compareLocalFile = false;
+
+		private String compareChecksum;
+
+		public boolean getCompareLocalFile() { return compareLocalFile; }
+
+		public void setCompareLocalFile(final boolean compareLocalFile) { this.compareLocalFile = compareLocalFile;}
+
+		public String getCompareChecksum() { return compareChecksum; }
+
+		public void setCompareChecksum(final String compareChecksum) {
+			this.compareChecksum = compareChecksum;
 		}
 	}
 
@@ -445,6 +476,107 @@ public class StandardParams
 		public UserParams setSudo(final boolean sudo)
 		{
 			sudoable.setSudo(sudo);
+			return this;
+		}
+	}
+
+	public static final class RemoteFileExistsParams extends Params
+	{
+		private String path = "";
+		private Sudoable sudoable = new Sudoable();
+		private Callback0 trueCallback;
+		private Callback0 falseCallback;
+
+		public String getPath() {
+			return path;
+		}
+
+		public RemoteFileExistsParams setPath(final String path)
+		{
+			this.path = path;
+			return this;
+		}
+
+		public String getSudoCmd()
+		{
+			return sudoable.getSudoCmd();
+		}
+
+		public RemoteFileExistsParams setSudoCmd(final String cmd)
+		{
+			sudoable.setSudoCmd(cmd);
+			return this;
+		}
+
+		public RemoteFileExistsParams setSudoAsUser(final String sudoer)
+		{
+			sudoable.setSudoAsUser(sudoer);
+			return this;
+		}
+
+		public RemoteFileExistsParams invokeTrueCallback()
+		{
+			if (trueCallback != null)
+				trueCallback.call();
+			return this;
+		}
+
+		public RemoteFileExistsParams setTrueCallback(final Callback0 trueCb)
+		{
+			this.trueCallback = trueCb;
+			return this;
+		}
+
+		public RemoteFileExistsParams invokeFalseCallback()
+		{
+			if (falseCallback != null)
+				falseCallback.call();
+			return this;
+		}
+
+		public RemoteFileExistsParams setFalseCallback(final Callback0 falseCb)
+		{
+			this.falseCallback = falseCb;
+			return this;
+		}
+
+		public RemoteFileExistsParams setSudo(final boolean sudo)
+		{
+			sudoable.setSudo(sudo);
+			return this;
+		}
+
+//		public boolean getCompareLocalFile()
+//		{
+//			return comparable.getCompareLocalFile();
+//		}
+
+//		public RemoteFileExistsParams setCompareLocalFile(final boolean compareLocalFile)
+//		{
+//			comparable.setCompareLocalFile(compareLocalFile);
+//			return comparable;
+//		}
+
+//		public String getCompareChecksum() {
+//			return comparable.getCompareChecksum();
+//		}
+
+//		public Comparable setCompareChecksum(final String compareChecksum)
+//		{
+//			comparable.setCompareChecksum(compareChecksum);
+//			return comparable;
+//		}
+
+		private Modeable modeable = new Modeable();
+
+		public String getMode()
+		{
+			return modeable.getMode();
+		}
+
+		public RemoteFileExistsParams setMode(String mode)
+		{
+			modeable.setMode(mode);
 			return this;
 		}
 	}

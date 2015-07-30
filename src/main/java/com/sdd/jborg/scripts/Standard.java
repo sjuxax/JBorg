@@ -232,7 +232,17 @@ public class Standard
 	{
 		return chainForCb(new ExecuteParams(), p -> {
 			// TODO: implement retries
+
 			// TODO: implement expect assertions
+
+
+
+
+
+
+
+
+
 			ssh.cmd(p.getSudoCmd() + cmd, (code, out, err) -> {
 				if (!empty(p.getTest()))
 					p.getTest().call(code, out, err);
@@ -380,10 +390,93 @@ public class Standard
 		};
 	}
 
-	public static Callback0 remoteFileExists(final String path)
+	public interface Includable
 	{
-		return () -> {
-
-		};
+		void include();
 	}
+
+	public static void include(final Class<? extends Includable> cls)
+	{
+		try
+		{
+			cls.newInstance().include();
+		}
+		catch (IllegalAccessException|InstantiationException e)
+		{
+			e.printStackTrace();
+		}
+	}
+
+	public static Params install(final String packages)
+	{
+		return chainForCb(new Params(), p -> {
+			execute("dpkg -s "+ packages + " 2>&1 | grep 'is not installed and'")
+			.setTest((code) -> {
+				if (code != 0)
+					return log("Skipping package(s) already installed.");
+
+				execute("DEBIAN_FRONTEND=noninteractive apt-get install -y " + packages)
+					.setSudo(true)
+					.setRetry(3)
+					.expect(0)
+					.callImmediate();
+			}).callImmediate();
+		});
+	}
+
+//	public static RemoteFileExistsParams remoteFileExists(final String path)
+//	{
+//		return chainForCb(new RemoteFileExistsParams(), p -> {
+//				if (!p.getCompareLocalFile() && empty(p.getCompareChecksum()))
+//				{
+//					execute("stat " + path)
+//						.setSudoCmd(p.getSudoCmd())
+//						.setTest((code, out, err) -> {
+//							if (code == 0)
+//							{
+//								log("Remote file " + path + " exists.");
+//								p.invokeTrueCallback();
+//							}
+//							else
+//							{
+//								p.invokeFalseCallback();
+//							}
+//						});
+//				}
+//				else
+//				{
+//					if (p.getCompareLocalFile())
+//					{
+//						final String localChecksum; // TODO: calculate checksum
+//						//p.setCompareChecksum(localChecksum)
+//						//TODO: Create checksum function
+//					}
+//					execute("sha256sum " + path)
+//						.setSudoCmd(p.getSudoCmd())
+//						.setTest(((code, out, err) -> {
+//							final String[] matches;
+//							matches = out.matches("/[a-f0-9]{64}/")
+//							if (!empty(matches))
+//							{
+//								if (matches[0] == localChecksum)
+//								{
+//									log("Remote file checksum " + matches[0] + " matches expected checksum " + localChecksum + ".");
+//									//TODO: True callback
+//								}
+//								else
+//								{
+//									log("Remote file checksum " + matches[0] + " does not match expected checksum " + localChecksum + ".");
+//									//TODO: False callback
+//								}
+//							}
+//							else
+//							{
+//								log("Unexpected problems reading remote file checksum.  Assuming remote file checksum does not match expected checksum " + localChecksum + ".");
+//								//TODO: False callback
+//							}
+//						}));
+//				}
+//			}
+//		);
+//	}
 }
