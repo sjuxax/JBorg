@@ -52,7 +52,8 @@ public class StandardParams
 		private Ssh.CmdCallback testCb;
 		private Sudoable sudoable = new Sudoable();
 		private int retryTimes;
-		private int expectCode;
+		private Integer expectCode;
+		private boolean ignoreErrors = false;
 
 		public ExecuteParams setTest(final ScriptRemoteTestCallback1 testCb)
 		{
@@ -96,15 +97,36 @@ public class StandardParams
 			return this;
 		}
 
+		public int getRetryTimes()
+		{
+			return this.retryTimes;
+		}
+
 		public ExecuteParams setRetry(final int times)
 		{
 			this.retryTimes = times;
 			return this;
 		}
 
-		public ExecuteParams expect(final int code)
+		public Integer getExpectCode()
+		{
+			return expectCode;
+		}
+
+		public ExecuteParams expect(final Integer code)
 		{
 			this.expectCode = code;
+			return this;
+		}
+
+		public boolean isIgnoringErrors()
+		{
+			return ignoreErrors;
+		}
+
+		public ExecuteParams setIgnoreErrors(final boolean ignoreErrors)
+		{
+			this.ignoreErrors = ignoreErrors;
 			return this;
 		}
 	}

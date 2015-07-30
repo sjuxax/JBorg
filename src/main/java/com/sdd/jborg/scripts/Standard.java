@@ -20,6 +20,7 @@ import java.util.ArrayDeque;
 import java.util.Base64;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -228,26 +229,69 @@ public class Standard
 		return p;
 	}
 
+	private static final class Container<T>
+	{
+		private T t;
+		public void set(final T t)
+		{
+			this.t = t;
+		}
+		public T get()
+		{
+			return t;
+		}
+	}
+
 	public static ExecuteParams execute(final String cmd)
 	{
 		return chainForCb(new ExecuteParams(), p -> {
-			// TODO: implement retries
+			final AtomicInteger triesRemaining = new AtomicInteger(p.getRetryTimes());
+			final Container<Callback0> _try = new Container<>();
+			_try.set(() -> ssh.cmd(p.getSudoCmd() + cmd, (code, out, err) -> {
+				String error = null;
+				// TODO: implement multiple types of expectations?
+				// for now just implementing code check because i think
+				// that was the most common case.
+				if (p.getExpectCode() != null)
+				{
+					if (code != 0)
+					{
+						if (code != p.getExpectCode())
+						{
+							error = "Expected exit code "+ p.getExpectCode() +", but got "+ code +".";
+						}
+						if (error == null)
+						{
+							log("NOTICE: Non-zero exit code was expected. Will continue.");
+						}
+						else if (p.isIgnoringErrors())
+						{
+							log("NOTICE: Non-zero exit code can be ignored. Will continue.");
+						}
+					}
+				}
 
-			// TODO: implement expect assertions
+				if (error != null)
+				{
+					if (triesRemaining.decrementAndGet() > 0)
+					{
+						Logger.err(error +" Will try again...");
+						_try.get().call(); // try again
+					}
+					else
+					{
+						die(new RuntimeException(error +" Tried "+ p.getRetryTimes() + " times. Giving up."));
+					}
+				}
 
+				// wait until tries are over...
 
-
-
-
-
-
-
-
-			ssh.cmd(p.getSudoCmd() + cmd, (code, out, err) -> {
 				if (!empty(p.getTest()))
 					p.getTest().call(code, out, err);
-			});
-		});
+			}));
+
+			_try.get().call();
+		};
 	}
 
 	public static ChownParams chown(final String path)
@@ -411,9 +455,12 @@ public class Standard
 	{
 		return chainForCb(new Params(), p -> {
 			execute("dpkg -s "+ packages + " 2>&1 | grep 'is not installed and'")
-			.setTest((code) -> {
+			.setTest((code, out, err) -> {
 				if (code != 0)
-					return log("Skipping package(s) already installed.");
+				{
+					log("Skipping package(s) already installed.");
+					return;
+				}
 
 				execute("DEBIAN_FRONTEND=noninteractive apt-get install -y " + packages)
 					.setSudo(true)
