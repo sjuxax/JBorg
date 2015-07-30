@@ -17,14 +17,17 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.io.FileInputStream;
 import java.util.ArrayDeque;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import groovy.text.Template;
+import groovy.text.StreamingTemplateEngine;
 
 import static com.sdd.jborg.scripts.params.StandardParams.*;
 
@@ -284,7 +287,7 @@ public class Standard
 					}
 					else
 					{
-						die(new RuntimeException(error + " Tried " + p.getRetryTimes() + " times. Giving up."));
+						die(new RemoteServerValidationException(error + " Tried " + p.getRetryTimes() + " times. Giving up."));
 					}
 				}
 
@@ -297,6 +300,16 @@ public class Standard
 			_try.get().call();
 		});
 	}
+
+	public static ServiceParams service(final String serviceName)
+	{
+		return chainForCb(new ServiceParams(), p -> {
+			execute("service " + serviceName + " " + p.getAction())
+				.setSudo(true)
+				.callImmediate();
+		});
+	}
+
 
 	public static ChownParams chown(final String path)
 	{
@@ -424,25 +437,6 @@ public class Standard
 		});
 	}
 
-	public static Callback0 template(final String path)
-	{
-		return () -> {
-
-		};
-	}
-
-	public static Callback0 upload(final String path)
-	{
-		return () -> {
-
-		};
-	}
-
-	public interface Includable
-	{
-		void include();
-	}
-
 	public static void include(final Class<? extends Includable> cls)
 	{
 		try
@@ -475,24 +469,114 @@ public class Standard
 		});
 	}
 
+	public static UninstallParams uninstall(final String serviceName)
+	{
+		return chainForCb(new UninstallParams(), p -> {
+			execute("dpkg -s " + serviceName + " 2>&1 | grep 'install ok installed'")
+				.setSudo(true)
+				.setTest(((code, out, err) -> {
+					if (code != 0)
+					{
+						log(serviceName + " is not installed, ignoring");
+						return;
+					}
+					else
+					{
+						execute("DEBIAN_FRONTEND=noninteractive apt-get " + ((p.isPurge() == true) ? "purge " : "uninstall ") + serviceName)
+							.setSudo(true)
+							.setRetry(3)
+							.expect(0)
+							.callImmediate();
+					}
+				}))
+				.callImmediate();
+		});
+	}
+
+
 	public static DeployParams deploy(final String appName)
 	{
 		return chainForCb(new DeployParams(), p -> {
-			execute("dpkg -s " + packages + " 2>&1 | grep 'is not installed and'")
-				.setTest((code, out, err) -> {
-					if (code != 0)
-					{
-						log("Skipping package(s) already installed.");
-						return;
-					}
+			// force sudo as deploy owner
+			p.setSudoAsUser(p.getOwner());
 
-					execute("DEBIAN_FRONTEND=noninteractive apt-get install -y " + packages)
-						.setSudo(true)
-						.setRetry(3)
-						.expect(0)
-						.callImmediate();
-				}).callImmediate();
+			final String privateKeyPath = "$(echo ~" + p.getOwner() + ")/.ssh/id_rsa";
+
+			directory("$(echo ~" + p.getOwner() + ")/")
+				.setOwner(p.getOwner())
+				.setGroup(p.getGroup())
+				.setSudo(true)
+				.setRecursive(true)
+				.setMode("0700");
+
+			directory("$(echo ~" + p.getOwner() + ")/.ssh/")
+				.setOwner(p.getOwner())
+				.setGroup(p.getGroup())
+				.setSudo(true)
+				.setRecursive(true)
+				.setMode("0700");
+
+			// write ssh key to ~/.ssh/
+			template(privateKeyPath)
+				.setContent(p.getGit().getDeployKey())
+//				.setVariables(new HashMap<String, String>(){{
+//					put("firstname", "Bob");
+//				}});
+				.setOwner(p.getOwner())
+				.setGroup(p.getGroup())
+				.setMode("0600")
+				.setSudo(true);
 		});
+	}
+
+	public static TemplateParams template(final String path)
+	{
+		return chainForCb(new TemplateParams(), p -> {
+			final String template;
+			if (p.getContent() != null)
+			{
+				// template from string
+				p.setTo(path);
+				template = p.getContent();
+			}
+			else
+			{
+				// template from disk
+				template = FileSystem.readFileToString(path + ".template");
+			}
+
+			if (p.getTo() == null)
+				throw new DeveloperInputValidationException("to is a required parameter");
+
+			// compile template variables
+			try
+			{
+				final String output = new StreamingTemplateEngine()
+					.createTemplate(template)
+					.make(p.getVariables())
+					.toString();
+			}
+			catch (ClassNotFoundException e)
+			{
+				e.printStackTrace();
+			}
+			catch (IOException e)
+			{
+				e.printStackTrace();
+			}
+		});
+	}
+
+	public static Params upload(final String path)
+	{
+		return chainForCb(new Params(), p -> {
+
+		});
+	}
+
+	public interface Includable
+	{
+		void include();
 	}
 
 	private static final Pattern CHECKSUM_PATTERN = Pattern.compile("/[a-f0-9]{64}/");
@@ -526,17 +610,15 @@ public class Standard
 			}
 			else
 			{
-				final String localChecksum; // TODO: calculate checksum
-				if (p.getCompareLocalFile().getClass() == String.class)
+				if (p.getCompareLocalFile() != null)
 				{
-					localChecksum = getHash(p.getCompareLocalFile());
 					execute("sha256sum " + path)
 						.setSudoCmd(p.getSudoCmd())
 						.setTest((code, out, err) -> {
 							final Matcher matcher = CHECKSUM_PATTERN.matcher(out);
 							if (matcher.matches())
 							{
-								if (matcher.group(0).equals(localChecksum))
+								if (matcher.group(0).equals(getHash(p.getCompareLocalFile())))
 								{
 									log("Remote file checksum of " + matcher.group(0) + " matches checksum of local file " + p.getCompareLocalFile() + ".");
 									p.invokeTrueCallback();
@@ -549,7 +631,7 @@ public class Standard
 							}
 						});
 				}
-				if (p.getCompareChecksum().getClass() == String.class)
+				if (p.getCompareChecksum() != null)
 				{
 					execute("sha256sum " + path)
 						.setSudoCmd(p.getSudoCmd())
@@ -557,20 +639,20 @@ public class Standard
 							final Matcher matcher = CHECKSUM_PATTERN.matcher(out);
 							if (matcher.matches())
 							{
-								if (matcher.group(0).equals(localChecksum))
+								if (matcher.group(0).equals(p.getCompareChecksum()))
 								{
-									log("Remote file checksum " + matcher.group(0) + " matches expected checksum " + localChecksum + ".");
+									log("Remote file checksum " + matcher.group(0) + " matches expected checksum " + p.getCompareChecksum() + ".");
 									p.invokeTrueCallback();
 								}
 								else
 								{
-									log("Remote file checksum " + matcher.group(0) + " does not match expected checksum " + localChecksum + ".");
+									log("Remote file checksum " + matcher.group(0) + " does not match expected checksum " + p.getCompareChecksum() + ".");
 									p.invokeFalseCallback();
 								}
 							}
 							else
 							{
-								log("Unexpected problems reading remote file checksum.  Assuming remote file checksum does not match expected checksum " + localChecksum + ".");
+								log("Unexpected problems reading remote file checksum.  Assuming remote file checksum does not match expected checksum " + p.getCompareChecksum() + ".");
 								p.invokeFalseCallback();
 							}
 						});

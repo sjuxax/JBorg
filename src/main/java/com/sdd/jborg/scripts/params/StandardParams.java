@@ -6,6 +6,8 @@ import com.sdd.jborg.scripts.Standard.RemoteServerValidationException;
 import com.sdd.jborg.util.Callback1;
 import com.sdd.jborg.util.Func1;
 
+import java.util.Map;
+
 public class StandardParams
 {
 	public static class Params
@@ -607,6 +609,36 @@ public class StandardParams
 		}
 	}
 
+	public final static class ServiceParams extends Params
+	{
+		private String action = "start";
+
+		public String getAction()
+		{
+			return action;
+		}
+
+		public void setAction(String action)
+		{
+			this.action = action;
+		}
+	}
+
+	public final static class UninstallParams extends Params
+	{
+		private boolean purge;
+
+		public boolean isPurge()
+		{
+			return purge;
+		}
+
+		public void setPurge(boolean purge)
+		{
+			this.purge = purge;
+		}
+	}
+
 	public final static class DeployParams extends Params
 	{
 		private String deployTo;
@@ -659,13 +691,18 @@ public class StandardParams
 
 		private GitParams gitParams;
 
+		public GitParams getGit()
+		{
+			return gitParams;
+		}
+
 		public DeployParams setGit(final Func1<GitParams, GitParams> gitParamsCallback)
 		{
 			this.gitParams = gitParamsCallback.call(new GitParams());
 			return this;
 		}
 
-		private int keepReleases;
+		private int keepReleases = 3; // default
 
 		public int getKeepReleases()
 		{
@@ -724,6 +761,110 @@ public class StandardParams
 		public DeployParams setGroup(final String group)
 		{
 			ownable.setGroup(group);
+			return this;
+		}
+	}
+
+	public static final class TemplateParams extends Params
+	{
+		private String to;
+
+		public String getTo()
+		{
+			return to;
+		}
+
+		public TemplateParams setTo(String to)
+		{
+			this.to = to;
+			return this;
+		}
+
+		private String content;
+
+		public String getContent()
+		{
+			return content;
+		}
+
+		public TemplateParams setContent(String content)
+		{
+			this.content = content;
+			return this;
+		}
+
+		private Map variables;
+
+		public Map getVariables()
+		{
+			return variables;
+		}
+
+		public TemplateParams setVariables(Map variables)
+		{
+			this.variables = variables;
+			return this;
+		}
+
+		private Sudoable sudoable = new Sudoable();
+
+		public String getSudoCmd()
+		{
+			return sudoable.getSudoCmd();
+		}
+
+		public TemplateParams setSudoCmd(final String cmd)
+		{
+			sudoable.setSudoCmd(cmd);
+			return this;
+		}
+
+		public TemplateParams setSudoAsUser(final String sudoer)
+		{
+			sudoable.setSudoAsUser(sudoer);
+			return this;
+		}
+
+		public TemplateParams setSudo(final boolean sudo)
+		{
+			sudoable.setSudo(sudo);
+			return this;
+		}
+
+		private Ownable ownable = new Ownable();
+
+		public String getOwner()
+		{
+			return ownable.getOwner();
+		}
+
+		public TemplateParams setOwner(final String owner)
+		{
+			ownable.setOwner(owner);
+			return this;
+		}
+
+		public String getGroup()
+		{
+			return ownable.getGroup();
+		}
+
+		public TemplateParams setGroup(final String group)
+		{
+			ownable.setGroup(group);
+			return this;
+		}
+
+		private Modeable modeable = new Modeable();
+
+		public String getMode()
+		{
+			return modeable.getMode();
+		}
+
+		public TemplateParams setMode(String mode)
+		{
+			modeable.setMode(mode);
 			return this;
 		}
 	}

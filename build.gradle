@@ -12,5 +12,6 @@ dependencies {
     compile 'org.json:json:20141113'
     compile 'org.reflections:reflections:0.9.10'
     compile 'org.slf4j:slf4j-nop:1.7.12'
+    compile 'org.codehaus.groovy:groovy-templates:2.4.4'
     testCompile "junit:junit:4.11"
 }
