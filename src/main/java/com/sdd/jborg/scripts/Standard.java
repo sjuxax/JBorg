@@ -13,9 +13,11 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.io.FileInputStream;
 import java.util.ArrayDeque;
 import java.util.Base64;
 import java.util.Queue;
@@ -51,7 +53,7 @@ public class Standard
 						return instance;
 					}
 				}
-				catch (InstantiationException|IllegalAccessException e)
+				catch (InstantiationException | IllegalAccessException e)
 				{
 					e.printStackTrace();
 				}
@@ -232,10 +234,12 @@ public class Standard
 	private static final class Container<T>
 	{
 		private T t;
+
 		public void set(final T t)
 		{
 			this.t = t;
 		}
+
 		public T get()
 		{
 			return t;
@@ -258,7 +262,7 @@ public class Standard
 					{
 						if (code != p.getExpectCode())
 						{
-							error = "Expected exit code "+ p.getExpectCode() +", but got "+ code +".";
+							error = "Expected exit code " + p.getExpectCode() + ", but got " + code + ".";
 						}
 						if (error == null)
 						{
@@ -275,12 +279,12 @@ public class Standard
 				{
 					if (triesRemaining.decrementAndGet() > 0)
 					{
-						Logger.err(error +" Will try again...");
+						Logger.err(error + " Will try again...");
 						_try.get().call(); // try again
 					}
 					else
 					{
-						die(new RuntimeException(error +" Tried "+ p.getRetryTimes() + " times. Giving up."));
+						die(new RuntimeException(error + " Tried " + p.getRetryTimes() + " times. Giving up."));
 					}
 				}
 
@@ -291,7 +295,7 @@ public class Standard
 			}));
 
 			_try.get().call();
-		};
+		});
 	}
 
 	public static ChownParams chown(final String path)
@@ -301,10 +305,10 @@ public class Standard
 				throw new DeveloperInputValidationException("chown owner and group are required.");
 
 			execute("chown " +
-				        (p.getRecursive() ? "-R " : "") +
-				        p.getOwner() +
-				        "." + p.getGroup() +
-				        " " + path)
+				(p.getRecursive() ? "-R " : "") +
+				p.getOwner() +
+				"." + p.getGroup() +
+				" " + path)
 				.setSudoCmd(p.getSudoCmd())
 				.callImmediate();
 		});
@@ -317,8 +321,8 @@ public class Standard
 				throw new DeveloperInputValidationException("mode is required.");
 
 			execute("chmod " +
-				        p.getMode() +
-				        " " + path)
+				p.getMode() +
+				" " + path)
 				.setSudoCmd(p.getSudoCmd())
 				.callImmediate();
 		});
@@ -339,8 +343,8 @@ public class Standard
 					else
 					{
 						execute("mkdir " +
-							        (p.getRecursive() ? " -p" : "") +
-							        " " + path)
+							(p.getRecursive() ? " -p" : "") +
+							" " + path)
 							.setSudoCmd(p.getSudoCmd())
 							.callImmediate();
 					}
@@ -371,11 +375,11 @@ public class Standard
 						throw new RemoteServerValidationException("user " + name + " exists.");
 
 					execute("useradd " + name + " \\\n" +
-						        "  --create-home \\\n" +
-						        "  --user-group \\\n" +
-						        (!empty(p.getComment()) ? "  --comment " + bashEscape(p.getComment()) + " \\\n" : "") +
-						        (!empty(p.getPassword()) ? "  --password " + bashEscape(p.getPassword()) + " \\\n" : "") +
-						        ("  --shell " + (empty(p.getShell()) ? "/bin/bash" : "")))
+						"  --create-home \\\n" +
+						"  --user-group \\\n" +
+						(!empty(p.getComment()) ? "  --comment " + bashEscape(p.getComment()) + " \\\n" : "") +
+						(!empty(p.getPassword()) ? "  --password " + bashEscape(p.getPassword()) + " \\\n" : "") +
+						("  --shell " + (empty(p.getShell()) ? "/bin/bash" : "")))
 						.setSudoCmd(p.getSudoCmd())
 						.callImmediate();
 
@@ -445,7 +449,7 @@ public class Standard
 		{
 			cls.newInstance().include();
 		}
-		catch (IllegalAccessException|InstantiationException e)
+		catch (IllegalAccessException | InstantiationException e)
 		{
 			e.printStackTrace();
 		}
@@ -454,76 +458,150 @@ public class Standard
 	public static Params install(final String packages)
 	{
 		return chainForCb(new Params(), p -> {
-			execute("dpkg -s "+ packages + " 2>&1 | grep 'is not installed and'")
-			.setTest((code, out, err) -> {
-				if (code != 0)
-				{
-					log("Skipping package(s) already installed.");
-					return;
-				}
+			execute("dpkg -s " + packages + " 2>&1 | grep 'is not installed and'")
+				.setTest((code, out, err) -> {
+					if (code != 0)
+					{
+						log("Skipping package(s) already installed.");
+						return;
+					}
 
-				execute("DEBIAN_FRONTEND=noninteractive apt-get install -y " + packages)
-					.setSudo(true)
-					.setRetry(3)
-					.expect(0)
-					.callImmediate();
-			}).callImmediate();
+					execute("DEBIAN_FRONTEND=noninteractive apt-get install -y " + packages)
+						.setSudo(true)
+						.setRetry(3)
+						.expect(0)
+						.callImmediate();
+				}).callImmediate();
 		});
 	}
 
-//	public static RemoteFileExistsParams remoteFileExists(final String path)
-//	{
-//		return chainForCb(new RemoteFileExistsParams(), p -> {
-//				if (!p.getCompareLocalFile() && empty(p.getCompareChecksum()))
-//				{
-//					execute("stat " + path)
-//						.setSudoCmd(p.getSudoCmd())
-//						.setTest((code, out, err) -> {
-//							if (code == 0)
-//							{
-//								log("Remote file " + path + " exists.");
-//								p.invokeTrueCallback();
-//							}
-//							else
-//							{
-//								p.invokeFalseCallback();
-//							}
-//						});
-//				}
-//				else
-//				{
-//					if (p.getCompareLocalFile())
-//					{
-//						final String localChecksum; // TODO: calculate checksum
-//						//p.setCompareChecksum(localChecksum)
-//						//TODO: Create checksum function
-//					}
-//					execute("sha256sum " + path)
-//						.setSudoCmd(p.getSudoCmd())
-//						.setTest(((code, out, err) -> {
-//							final String[] matches;
-//							matches = out.matches("/[a-f0-9]{64}/")
-//							if (!empty(matches))
-//							{
-//								if (matches[0] == localChecksum)
-//								{
-//									log("Remote file checksum " + matches[0] + " matches expected checksum " + localChecksum + ".");
-//									//TODO: True callback
-//								}
-//								else
-//								{
-//									log("Remote file checksum " + matches[0] + " does not match expected checksum " + localChecksum + ".");
-//									//TODO: False callback
-//								}
-//							}
-//							else
-//							{
-//								log("Unexpected problems reading remote file checksum.  Assuming remote file checksum does not match expected checksum " + localChecksum + ".");
-//								//TODO: False callback
-//							}
-//						}));
-//				}
-//			}
-//		);
-//	}
+	public static DeployParams deploy(final String appName)
+	{
+		return chainForCb(new DeployParams(), p -> {
+			execute("dpkg -s " + packages + " 2>&1 | grep 'is not installed and'")
+				.setTest((code, out, err) -> {
+					if (code != 0)
+					{
+						log("Skipping package(s) already installed.");
+						return;
+					}
+
+					execute("DEBIAN_FRONTEND=noninteractive apt-get install -y " + packages)
+						.setSudo(true)
+						.setRetry(3)
+						.expect(0)
+						.callImmediate();
+				}).callImmediate();
+		});
+	}
+
+	private static final Pattern CHECKSUM_PATTERN = Pattern.compile("/[a-f0-9]{64}/");
+
+	/**
+	 * Check whether a file exists on the remote server's disk.
+	 *
+	 * @param path path to file on remote server
+	 * @return Composable parameters:
+	 * CompareLocalFile - path to file on local machine to hash and compare to hash of remote file
+	 * CompareChecksum - sha256 hash string to compare hash of remote file to
+	 */
+	public static RemoteFileExistsParams remoteFileExists(final String path)
+	{
+		return chainForCb(new RemoteFileExistsParams(), (p) -> {
+			if (empty(p.getCompareLocalFile()) && empty(p.getCompareChecksum()))
+			{
+				execute("stat " + path)
+					.setSudoCmd(p.getSudoCmd())
+					.setTest((code, out, err) -> {
+						if (code == 0)
+						{
+							log("Remote file " + path + " exists.");
+							p.invokeTrueCallback();
+						}
+						else
+						{
+							p.invokeFalseCallback();
+						}
+					});
+			}
+			else
+			{
+				final String localChecksum; // TODO: calculate checksum
+				if (p.getCompareLocalFile().getClass() == String.class)
+				{
+					localChecksum = getHash(p.getCompareLocalFile());
+					execute("sha256sum " + path)
+						.setSudoCmd(p.getSudoCmd())
+						.setTest((code, out, err) -> {
+							final Matcher matcher = CHECKSUM_PATTERN.matcher(out);
+							if (matcher.matches())
+							{
+								if (matcher.group(0).equals(localChecksum))
+								{
+									log("Remote file checksum of " + matcher.group(0) + " matches checksum of local file " + p.getCompareLocalFile() + ".");
+									p.invokeTrueCallback();
+								}
+								else
+								{
+									log("Remote file checksum of " + matcher.group(0) + " did not match checksum of local file " + p.getCompareLocalFile() + ".");
+									p.invokeFalseCallback();
+								}
+							}
+						});
+				}
+				if (p.getCompareChecksum().getClass() == String.class)
+				{
+					execute("sha256sum " + path)
+						.setSudoCmd(p.getSudoCmd())
+						.setTest((code, out, err) -> {
+							final Matcher matcher = CHECKSUM_PATTERN.matcher(out);
+							if (matcher.matches())
+							{
+								if (matcher.group(0).equals(localChecksum))
+								{
+									log("Remote file checksum " + matcher.group(0) + " matches expected checksum " + localChecksum + ".");
+									p.invokeTrueCallback();
+								}
+								else
+								{
+									log("Remote file checksum " + matcher.group(0) + " does not match expected checksum " + localChecksum + ".");
+									p.invokeFalseCallback();
+								}
+							}
+							else
+							{
+								log("Unexpected problems reading remote file checksum.  Assuming remote file checksum does not match expected checksum " + localChecksum + ".");
+								p.invokeFalseCallback();
+							}
+						});
+				}
+			}
+		});
+	}
+
+	private static String bytesToHexString(final byte[] bytes)
+	{
+		StringBuilder hexLine = new StringBuilder();
+		for (int i = 0; i < bytes.length; i++)
+		{
+			hexLine.append(String.format("%02X", bytes[i]));
+		}
+		return hexLine.toString();
+	}
+
+	private static String getHash(final String filename)
+	{
+		final MessageDigest digest;
+		try
+		{
+			digest = MessageDigest.getInstance("SHA-256");
+			digest.update(FileSystem.readFileToBytes(filename));
+			return bytesToHexString(digest.digest());
+		}
+		catch (NoSuchAlgorithmException e)
+		{
+			e.printStackTrace();
+			return "";
+		}
+	}
 }

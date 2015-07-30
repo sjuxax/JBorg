@@ -3,6 +3,8 @@ package com.sdd.jborg.scripts.params;
 import com.sdd.jborg.Ssh;
 import com.sdd.jborg.util.Callback0;
 import com.sdd.jborg.scripts.Standard.RemoteServerValidationException;
+import com.sdd.jborg.util.Callback1;
+import com.sdd.jborg.util.Func1;
 
 public class StandardParams
 {
@@ -505,6 +507,8 @@ public class StandardParams
 	public static final class RemoteFileExistsParams extends Params
 	{
 		private String path = "";
+		private String compareLocalFile;
+		private String compareChecksum;
 		private Sudoable sudoable = new Sudoable();
 		private Callback0 trueCallback;
 		private Callback0 falseCallback;
@@ -568,26 +572,26 @@ public class StandardParams
 			return this;
 		}
 
-//		public boolean getCompareLocalFile()
-//		{
-//			return comparable.getCompareLocalFile();
-//		}
+		public String getCompareLocalFile()
+		{
+			return this.compareLocalFile;
+		}
 
-//		public RemoteFileExistsParams setCompareLocalFile(final boolean compareLocalFile)
-//		{
-//			comparable.setCompareLocalFile(compareLocalFile);
-//			return comparable;
-//		}
+		public RemoteFileExistsParams setCompareLocalFile(final String CompareLocalFile)
+		{
+			this.compareLocalFile = CompareLocalFile;
+			return this;
+		}
 
-//		public String getCompareChecksum() {
-//			return comparable.getCompareChecksum();
-//		}
+		public String getCompareChecksum() {
+			return this.compareChecksum;
+		}
 
-//		public Comparable setCompareChecksum(final String compareChecksum)
-//		{
-//			comparable.setCompareChecksum(compareChecksum);
-//			return comparable;
-//		}
+		public RemoteFileExistsParams setCompareChecksum(final String CompareChecksum)
+		{
+			this.compareChecksum = CompareChecksum;
+			return this;
+		}
 
 		private Modeable modeable = new Modeable();
 
@@ -599,6 +603,127 @@ public class StandardParams
 		public RemoteFileExistsParams setMode(String mode)
 		{
 			modeable.setMode(mode);
+			return this;
+		}
+	}
+
+	public final static class DeployParams extends Params
+	{
+		private String deployTo;
+
+		public DeployParams setDeployTo(final String deployTo)
+		{
+			this.deployTo = deployTo;
+			return this;
+		}
+
+		public final static class GitParams
+		{
+			private String repo;
+			private String branch;
+			private String deployKey;
+
+			public String getRepo()
+			{
+				return repo;
+			}
+
+			public GitParams setRepo(String repo)
+			{
+				this.repo = repo;
+				return this;
+			}
+
+			public String getBranch()
+			{
+				return branch;
+			}
+
+			public GitParams setBranch(String branch)
+			{
+				this.branch = branch;
+				return this;
+			}
+
+			public String getDeployKey()
+			{
+				return deployKey;
+			}
+
+			public GitParams setDeployKey(String deployKey)
+			{
+				this.deployKey = deployKey;
+				return this;
+			}
+		}
+
+		private GitParams gitParams;
+
+		public DeployParams setGit(final Func1<GitParams, GitParams> gitParamsCallback)
+		{
+			this.gitParams = gitParamsCallback.call(new GitParams());
+			return this;
+		}
+
+		private int keepReleases;
+
+		public int getKeepReleases()
+		{
+			return keepReleases;
+		}
+
+		public DeployParams setKeepReleases(final int amount)
+		{
+			this.keepReleases = amount;
+			return this;
+		}
+
+		private Sudoable sudoable = new Sudoable();
+
+		public String getSudoCmd()
+		{
+			return sudoable.getSudoCmd();
+		}
+
+		public DeployParams setSudoCmd(final String cmd)
+		{
+			sudoable.setSudoCmd(cmd);
+			return this;
+		}
+
+		public DeployParams setSudoAsUser(final String sudoer)
+		{
+			sudoable.setSudoAsUser(sudoer);
+			return this;
+		}
+
+		public DeployParams setSudo(final boolean sudo)
+		{
+			sudoable.setSudo(sudo);
+			return this;
+		}
+
+		private Ownable ownable = new Ownable();
+
+		public String getOwner()
+		{
+			return ownable.getOwner();
+		}
+
+		public DeployParams setOwner(final String owner)
+		{
+			ownable.setOwner(owner);
+			return this;
+		}
+
+		public String getGroup()
+		{
+			return ownable.getGroup();
+		}
+
+		public DeployParams setGroup(final String group)
+		{
+			ownable.setGroup(group);
 			return this;
 		}
 	}
