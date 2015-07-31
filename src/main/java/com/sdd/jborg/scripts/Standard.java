@@ -500,6 +500,12 @@ public class Standard
 			Long.toHexString(Double.doubleToRawLongBits(Math.random())).toUpperCase().substring(8);
 	}
 
+	/**
+	 * Compiles text output from strings or local files on disk when given a map of variables to fill in.
+	 *
+	 * Template engine syntax and details:
+	 * http://docs.groovy-lang.org/latest/html/documentation/template-engines.html#_streamingtemplateengine
+	 */
 	public static TemplateParams template(final String path)
 	{
 		return chainForCb(new TemplateParams(), p -> {
