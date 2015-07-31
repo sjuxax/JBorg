@@ -11,19 +11,10 @@ import com.sdd.jborg.util.FileSystem;
 import groovy.text.StreamingTemplateEngine;
 import org.reflections.Reflections;
 
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
-import java.util.Base64;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -556,9 +547,11 @@ public class Standard
 			upload(tmpFile)
 				.setTo("/tmp/remote-" + ver)
 				.setFinalTo(p.getTo())
-				.callImmediate()
-			// TODO: forward everything relevant
-			;
+				.setSudoCmd(p.getSudoCmd())
+				.setOwner(p.getOwner())
+				.setGroup(p.getGroup())
+				.setMode(p.getMode())
+				.callImmediate();
 
 			// delete temporary file from local test
 			FileSystem.unlink(tmpFile);
