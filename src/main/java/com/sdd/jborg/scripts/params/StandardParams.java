@@ -3,7 +3,6 @@ package com.sdd.jborg.scripts.params;
 import com.sdd.jborg.Ssh;
 import com.sdd.jborg.util.Callback0;
 import com.sdd.jborg.scripts.Standard.RemoteServerValidationException;
-import com.sdd.jborg.util.Callback1;
 import com.sdd.jborg.util.Func1;
 
 import java.util.Map;
@@ -62,7 +61,8 @@ public class StandardParams
 		public ExecuteParams setTest(final ScriptRemoteTestCallback1 testCb)
 		{
 			this.testCb = (code, out, err) -> {
-				try {
+				try
+				{
 					testCb.call(code, out, err);
 				}
 				catch (final RemoteServerValidationException e)
@@ -167,13 +167,23 @@ public class StandardParams
 
 		private String compareChecksum;
 
-		public boolean getCompareLocalFile() { return compareLocalFile; }
+		public boolean getCompareLocalFile()
+		{
+			return compareLocalFile;
+		}
 
-		public void setCompareLocalFile(final boolean compareLocalFile) { this.compareLocalFile = compareLocalFile;}
+		public void setCompareLocalFile(final boolean compareLocalFile)
+		{
+			this.compareLocalFile = compareLocalFile;
+		}
 
-		public String getCompareChecksum() { return compareChecksum; }
+		public String getCompareChecksum()
+		{
+			return compareChecksum;
+		}
 
-		public void setCompareChecksum(final String compareChecksum) {
+		public void setCompareChecksum(final String compareChecksum)
+		{
 			this.compareChecksum = compareChecksum;
 		}
 	}
@@ -202,7 +212,7 @@ public class StandardParams
 			return mode;
 		}
 
-		public void setMode(String mode)
+		public void setMode(final String mode)
 		{
 			this.mode = mode;
 		}
@@ -320,7 +330,7 @@ public class StandardParams
 			return modeable.getMode();
 		}
 
-		public ChmodParams setMode(String mode)
+		public ChmodParams setMode(final String mode)
 		{
 			modeable.setMode(mode);
 			return this;
@@ -398,7 +408,7 @@ public class StandardParams
 			return modeable.getMode();
 		}
 
-		public DirectoryParams setMode(String mode)
+		public DirectoryParams setMode(final String mode)
 		{
 			modeable.setMode(mode);
 			return this;
@@ -515,7 +525,8 @@ public class StandardParams
 		private Callback0 trueCallback;
 		private Callback0 falseCallback;
 
-		public String getPath() {
+		public String getPath()
+		{
 			return path;
 		}
 
@@ -585,7 +596,8 @@ public class StandardParams
 			return this;
 		}
 
-		public String getCompareChecksum() {
+		public String getCompareChecksum()
+		{
 			return this.compareChecksum;
 		}
 
@@ -602,7 +614,7 @@ public class StandardParams
 			return modeable.getMode();
 		}
 
-		public RemoteFileExistsParams setMode(String mode)
+		public RemoteFileExistsParams setMode(final String mode)
 		{
 			modeable.setMode(mode);
 			return this;
@@ -618,7 +630,7 @@ public class StandardParams
 			return action;
 		}
 
-		public void setAction(String action)
+		public void setAction(final String action)
 		{
 			this.action = action;
 		}
@@ -633,9 +645,80 @@ public class StandardParams
 			return purge;
 		}
 
-		public void setPurge(boolean purge)
+		public void setPurge(final boolean purge)
 		{
 			this.purge = purge;
+		}
+	}
+
+	public final static class DownloadParams extends Params
+	{
+		private String checksum;
+
+		public String getChecksum()
+		{
+			return checksum;
+		}
+
+		public void setChecksum(final String checksum)
+		{
+			this.checksum = checksum;
+		}
+
+		private Ownable ownable = new Ownable();
+
+		public String getOwner()
+		{
+			return ownable.getOwner();
+		}
+
+		public DownloadParams setOwner(final String owner)
+		{
+			ownable.setOwner(owner);
+			return this;
+		}
+
+		public String getGroup()
+		{
+			return ownable.getGroup();
+		}
+
+		public DownloadParams setGroup(final String group)
+		{
+			ownable.setGroup(group);
+			return this;
+		}
+
+		private Modeable modeable = new Modeable();
+
+		public String getMode()
+		{
+			return modeable.getMode();
+		}
+
+		private Sudoable sudoable = new Sudoable();
+
+		public String getSudoCmd()
+		{
+			return sudoable.getSudoCmd();
+		}
+
+		public DownloadParams setSudoCmd(final String cmd)
+		{
+			sudoable.setSudoCmd(cmd);
+			return this;
+		}
+
+		public DownloadParams setSudoAsUser(final String sudoer)
+		{
+			sudoable.setSudoAsUser(sudoer);
+			return this;
+		}
+
+		public DownloadParams setSudo(final boolean sudo)
+		{
+			sudoable.setSudo(sudo);
+			return this;
 		}
 	}
 
@@ -660,7 +743,7 @@ public class StandardParams
 				return repo;
 			}
 
-			public GitParams setRepo(String repo)
+			public GitParams setRepo(final String repo)
 			{
 				this.repo = repo;
 				return this;
@@ -671,7 +754,7 @@ public class StandardParams
 				return branch;
 			}
 
-			public GitParams setBranch(String branch)
+			public GitParams setBranch(final String branch)
 			{
 				this.branch = branch;
 				return this;
@@ -682,7 +765,7 @@ public class StandardParams
 				return deployKey;
 			}
 
-			public GitParams setDeployKey(String deployKey)
+			public GitParams setDeployKey(final String deployKey)
 			{
 				this.deployKey = deployKey;
 				return this;
@@ -774,7 +857,7 @@ public class StandardParams
 			return to;
 		}
 
-		public TemplateParams setTo(String to)
+		public TemplateParams setTo(final String to)
 		{
 			this.to = to;
 			return this;
@@ -787,7 +870,7 @@ public class StandardParams
 			return content;
 		}
 
-		public TemplateParams setContent(String content)
+		public TemplateParams setContent(final String content)
 		{
 			this.content = content;
 			return this;
@@ -862,7 +945,137 @@ public class StandardParams
 			return modeable.getMode();
 		}
 
-		public TemplateParams setMode(String mode)
+		public TemplateParams setMode(final String mode)
+		{
+			modeable.setMode(mode);
+			return this;
+		}
+	}
+
+	public static final class UploadParams extends Params
+	{
+		private String to;
+
+		public String getTo()
+		{
+			return to;
+		}
+
+		public UploadParams setTo(final String to)
+		{
+			this.to = to;
+			return this;
+		}
+
+		private String finalTo;
+
+		public String getFinalTo()
+		{
+			return finalTo;
+		}
+
+		public UploadParams setFinalTo(final String finalTo)
+		{
+			this.finalTo = finalTo;
+			return this;
+		}
+
+		private boolean encrypted;
+
+		public boolean isEncrypted()
+		{
+			return encrypted;
+		}
+
+		public UploadParams isEncrypted(final boolean encrypted)
+		{
+			this.encrypted = encrypted;
+			return this;
+		}
+
+		private String content;
+
+		public String getContent()
+		{
+			return content;
+		}
+
+		public UploadParams setContent(final String content)
+		{
+			this.content = content;
+			return this;
+		}
+
+		private Map variables;
+
+		public Map getVariables()
+		{
+			return variables;
+		}
+
+		public UploadParams setVariables(final Map variables)
+		{
+			this.variables = variables;
+			return this;
+		}
+
+		private Sudoable sudoable = new Sudoable();
+
+		public String getSudoCmd()
+		{
+			return sudoable.getSudoCmd();
+		}
+
+		public UploadParams setSudoCmd(final String cmd)
+		{
+			sudoable.setSudoCmd(cmd);
+			return this;
+		}
+
+		public UploadParams setSudoAsUser(final String sudoer)
+		{
+			sudoable.setSudoAsUser(sudoer);
+			return this;
+		}
+
+		public UploadParams setSudo(final boolean sudo)
+		{
+			sudoable.setSudo(sudo);
+			return this;
+		}
+
+		private Ownable ownable = new Ownable();
+
+		public String getOwner()
+		{
+			return ownable.getOwner();
+		}
+
+		public UploadParams setOwner(final String owner)
+		{
+			ownable.setOwner(owner);
+			return this;
+		}
+
+		public String getGroup()
+		{
+			return ownable.getGroup();
+		}
+
+		public UploadParams setGroup(final String group)
+		{
+			ownable.setGroup(group);
+			return this;
+		}
+
+		private Modeable modeable = new Modeable();
+
+		public String getMode()
+		{
+			return modeable.getMode();
+		}
+
+		public UploadParams setMode(final String mode)
 		{
 			modeable.setMode(mode);
 			return this;

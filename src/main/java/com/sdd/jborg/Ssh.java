@@ -1,5 +1,6 @@
 package com.sdd.jborg;
 
+import com.sdd.jborg.util.Callback1;
 import net.schmizz.sshj.SSHClient;
 import net.schmizz.sshj.common.IOUtils;
 import net.schmizz.sshj.connection.ConnectionException;
@@ -8,11 +9,11 @@ import net.schmizz.sshj.sftp.SFTPClient;
 import net.schmizz.sshj.transport.TransportException;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 import net.schmizz.sshj.userauth.UserAuthException;
-import net.schmizz.sshj.xfer.FileSystemFile;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 
 public class Ssh
 {
@@ -106,17 +107,17 @@ public class Ssh
 		}
 	}
 
-	public void put(final String src, final String dst)
+	public void put(final Path src, final String dst, final Callback1<IOException> errCallback)
 	{
 		SFTPClient sftp = null;
 		try
 		{
 			sftp = ssh.newSFTPClient();
-			sftp.put(new FileSystemFile(src), dst);
+			sftp.put(src.toString(), dst);
 		}
 		catch (IOException e)
 		{
-			e.printStackTrace();
+			errCallback.call(e);
 		}
 		finally
 		{

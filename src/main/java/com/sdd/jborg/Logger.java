@@ -51,6 +51,11 @@ public abstract class Logger
 		write(Type.ERR, msg);
 	}
 
+	public static void out(final String msg)
+	{
+		System.out.println(msg);
+	}
+
 	private static final Pattern NEWLINE_PATTERN = Pattern.compile("\\n");
 
 	private static void write(final Type type, final String msg)

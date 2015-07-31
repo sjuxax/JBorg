@@ -6,30 +6,32 @@ import com.sdd.jborg.networks.Networks;
 import com.sdd.jborg.Server;
 import com.sdd.jborg.Ssh;
 import com.sdd.jborg.util.Callback0;
+import com.sdd.jborg.util.Crypto;
 import com.sdd.jborg.util.FileSystem;
+import groovy.text.StreamingTemplateEngine;
 import org.reflections.Reflections;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
 import java.util.Base64;
-import java.util.HashMap;
 import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import groovy.text.Template;
-import groovy.text.StreamingTemplateEngine;
-
 import static com.sdd.jborg.scripts.params.StandardParams.*;
+import static com.sdd.jborg.util.Crypto.Algorithm.*;
 
 /**
  * Standard fields and methods every script should have in scope.
@@ -117,11 +119,6 @@ public class Standard
 		reason.printStackTrace();
 	}
 
-	public static void log(final String msg)
-	{
-		Logger.info(msg);
-	}
-
 	public static boolean empty(final String value)
 	{
 		return value == null || value.equals("");
@@ -137,53 +134,14 @@ public class Standard
 		return value == null || value.length < 1;
 	}
 
-	// Encryption
-	private static final String CIPHER_TYPE = "AES/CBC/PKCS5Padding";
-	private static final SecretKey secret = readSecret();
-	private static final IvParameterSpec iv = new IvParameterSpec(new byte[16]);
-
-	private static SecretKey readSecret()
-	{
-		try
-		{
-			return new SecretKeySpec(MessageDigest.getInstance("SHA-256")
-				.digest(FileSystem.readFileToBytes("secret")), "AES");
-		}
-		catch (NoSuchAlgorithmException e)
-		{
-			e.printStackTrace();
-			return null;
-		}
-	}
-
 	public static String encrypt(final String s)
 	{
-		try
-		{
-			final Cipher cipher = Cipher.getInstance(CIPHER_TYPE);
-			cipher.init(Cipher.ENCRYPT_MODE, secret, iv);
-			return Base64.getEncoder().encodeToString(cipher.doFinal(s.getBytes(StandardCharsets.UTF_8)));
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-			return "";
-		}
+		return Crypto.encrypt(s);
 	}
 
 	public static String decrypt(final String s)
 	{
-		try
-		{
-			final Cipher cipher = Cipher.getInstance(CIPHER_TYPE);
-			cipher.init(Cipher.DECRYPT_MODE, secret, iv);
-			return new String(cipher.doFinal(Base64.getDecoder().decode(s)));
-		}
-		catch (Exception e)
-		{
-			e.printStackTrace();
-			return "";
-		}
+		return Crypto.decrypt(s);
 	}
 
 	/**
@@ -252,6 +210,7 @@ public class Standard
 	public static ExecuteParams execute(final String cmd)
 	{
 		return chainForCb(new ExecuteParams(), p -> {
+			// TODO: could do this with simple while loop probably; would be less complex
 			final AtomicInteger triesRemaining = new AtomicInteger(p.getRetryTimes());
 			final Container<Callback0> _try = new Container<>();
 			_try.set(() -> ssh.cmd(p.getSudoCmd() + cmd, (code, out, err) -> {
@@ -269,11 +228,11 @@ public class Standard
 						}
 						if (error == null)
 						{
-							log("NOTICE: Non-zero exit code was expected. Will continue.");
+							Logger.info("NOTICE: Non-zero exit code was expected. Will continue.");
 						}
 						else if (p.isIgnoringErrors())
 						{
-							log("NOTICE: Non-zero exit code can be ignored. Will continue.");
+							Logger.info("NOTICE: Non-zero exit code can be ignored. Will continue.");
 						}
 					}
 				}
@@ -291,7 +250,7 @@ public class Standard
 					}
 				}
 
-				// wait until tries are over...
+				// TODO: wait until tries are over... DON'T invoke test on every try
 
 				if (!empty(p.getTest()))
 					p.getTest().call(code, out, err);
@@ -351,7 +310,7 @@ public class Standard
 				.setTest((code, out, err) -> {
 					if (code == 0)
 					{
-						log("Skipping existing directory.");
+						Logger.info("Skipping existing directory.");
 					}
 					else
 					{
@@ -456,7 +415,7 @@ public class Standard
 				.setTest((code, out, err) -> {
 					if (code != 0)
 					{
-						log("Skipping package(s) already installed.");
+						Logger.info("Skipping package(s) already installed.");
 						return;
 					}
 
@@ -469,26 +428,41 @@ public class Standard
 		});
 	}
 
-	public static UninstallParams uninstall(final String serviceName)
+	public static UninstallParams uninstall(final String packages)
 	{
 		return chainForCb(new UninstallParams(), p -> {
-			execute("dpkg -s " + serviceName + " 2>&1 | grep 'install ok installed'")
+			execute("dpkg -s " + packages + " 2>&1 | grep 'install ok installed'")
 				.setSudo(true)
-				.setTest(((code, out, err) -> {
+				.setTest((code, out, err) -> {
 					if (code != 0)
 					{
-						log(serviceName + " is not installed, ignoring");
-						return;
+						throw new RemoteServerValidationException(packages + " is not installed, ignoring");
 					}
 					else
 					{
-						execute("DEBIAN_FRONTEND=noninteractive apt-get " + ((p.isPurge() == true) ? "purge " : "uninstall ") + serviceName)
+						execute("DEBIAN_FRONTEND=noninteractive apt-get " + ((p.isPurge() == true) ? "purge " : "uninstall ") + packages)
 							.setSudo(true)
 							.setRetry(3)
 							.expect(0)
 							.callImmediate();
 					}
-				}))
+				}).callImmediate();
+		});
+	}
+
+	public static Params update()
+	{
+		return chainForCb(new Params(), p -> {
+			execute("apt-get update")
+				.setSudo(true)
+				.setRetry(3)
+				.expect(0)
+				.callImmediate();
+
+			execute("DEBIAN_FRONTEND=noninteractive apt-get dist-upgrade -y")
+				.setSudo(true)
+				.setRetry(3)
+				.expect(0)
 				.callImmediate();
 		});
 	}
@@ -507,26 +481,32 @@ public class Standard
 				.setGroup(p.getGroup())
 				.setSudo(true)
 				.setRecursive(true)
-				.setMode("0700");
+				.setMode("0700")
+				.callImmediate();
 
 			directory("$(echo ~" + p.getOwner() + ")/.ssh/")
 				.setOwner(p.getOwner())
 				.setGroup(p.getGroup())
 				.setSudo(true)
 				.setRecursive(true)
-				.setMode("0700");
+				.setMode("0700")
+				.callImmediate();
 
 			// write ssh key to ~/.ssh/
 			template(privateKeyPath)
 				.setContent(p.getGit().getDeployKey())
-//				.setVariables(new HashMap<String, String>(){{
-//					put("firstname", "Bob");
-//				}});
 				.setOwner(p.getOwner())
 				.setGroup(p.getGroup())
 				.setMode("0600")
-				.setSudo(true);
+				.setSudo(true)
+				.callImmediate();
 		});
+	}
+
+	private static String tmpFile(final String seed)
+	{
+		return Crypto.computeHash(SHA_1, seed) +
+			Long.toHexString(Double.doubleToRawLongBits(Math.random())).toUpperCase().substring(8);
 	}
 
 	public static TemplateParams template(final String path)
@@ -549,29 +529,152 @@ public class Standard
 				throw new DeveloperInputValidationException("to is a required parameter");
 
 			// compile template variables
+			final String output;
 			try
 			{
-				final String output = new StreamingTemplateEngine()
+				output = new StreamingTemplateEngine()
 					.createTemplate(template)
 					.make(p.getVariables())
 					.toString();
 			}
-			catch (ClassNotFoundException e)
+			catch (ClassNotFoundException | IOException e)
 			{
 				e.printStackTrace();
+				return; // abort
 			}
-			catch (IOException e)
+
+			// log for debugging purposes
+			final String ver = tmpFile(output);
+			Logger.info("rendering file " + p.getTo() + " version " + ver);
+			Logger.out("---- BEGIN FILE ----\n" + output + "\n--- END FILE ---");
+
+			// write string to temporary file on local disk
+			final Path tmpFile = Paths.get(System.getProperty("java.io.tmpdir"), "local-" + ver);
+			FileSystem.writeStringToFile(tmpFile, output);
+
+			// upload file to remote disk
+			upload(tmpFile)
+				.setTo("/tmp/remote-" + ver)
+				.setFinalTo(p.getTo())
+				.callImmediate()
+			// TODO: forward everything relevant
+			;
+
+			// delete temporary file from local test
+			FileSystem.unlink(tmpFile);
+		});
+	}
+
+	/**
+	 * upload a file from localhost to the remote host with sftp
+	 */
+	public static UploadParams upload(final Path path)
+	{
+		return chainForCb(new UploadParams(), p -> {
+			if (p.getTo() == null)
+				throw new DeveloperInputValidationException("to is a required parameter");
+
+			final String ver = tmpFile(path.toString());
+
+			// TODO: implement file decryption
+
+			if (p.getFinalTo() == null)
 			{
-				e.printStackTrace();
+				p.setFinalTo(p.getTo());
+				p.setTo("/tmp/remote-"+ver);
+			}
+
+			// TODO: check if remote file exists
+
+			Logger.info("SFTP uploading "+ path.toFile().length() +" "+
+				(p.isEncrypted() ? "decrypted " : "") +
+				"bytes from \""+ path +"\" to \""+ p.getFinalTo() +"\" "+
+				(!p.getFinalTo().equals(p.getTo()) ? " through temporary file \""+ p.getTo() +"\"" : "") +
+				"...");
+
+			ssh.put(path, p.getTo(), e -> {
+				die(new RemoteServerValidationException("error during SFTP file transfer: " + e.getMessage()));
+			});
+
+			Logger.info("SFTP upload complete.");
+
+			// set ownership and permissions
+			chown(p.getTo())
+				.setSudoCmd(p.getSudoCmd())
+				.setOwner(p.getOwner())
+				.setGroup(p.getGroup())
+				.callImmediate();
+			chmod(p.getTo())
+				.setSudoCmd(p.getSudoCmd())
+				.setMode(p.getMode())
+				.callImmediate();
+
+			// move into final location
+			execute("mv " + p.getTo() +" "+ p.getFinalTo())
+				.setSudoCmd(p.getSudoCmd())
+				.expect(0)
+				.callImmediate();
+		});
+	}
+
+	/**
+	 * download a file from the internet to the remote host with wget
+	 */
+	public static DownloadParams download(final String uri, final String destination)
+	{
+		return chainForCb(new DownloadParams(), p -> {
+			//TODO: Once remote file exists function is verified, check if the file already exists before downloading
+			//for now, just download
+			execute("wget -nv " + uri + " " + bashPrefix("-O", destination))
+				.setSudoCmd(p.getSudoCmd())
+				.callImmediate();
+
+			if (!empty(p.getOwner()) && !empty(p.getGroup())) {
+				chown(destination)
+					.setOwner(p.getOwner())
+					.setGroup(p.getGroup())
+					.setSudoCmd(p.getSudoCmd())
+					.callImmediate();
+			}
+
+			if (!empty(p.getMode()))
+			{
+				chmod(destination)
+					.setMode(p.getMode())
+					.setSudoCmd(p.getSudoCmd())
+					.callImmediate();
 			}
 		});
 	}
 
-	public static Params upload(final String path)
+	public static Params sysctl(final String variable, final String value)
 	{
-		return chainForCb(new Params(), p -> {
-
+		return chainForCb(new Params(), params -> {
+			//remove any existing values for this key in sysctl.conf
+			execute("sed -i '/^" + variable + "/d' /etc/sysctl.conf")
+				.setSudo(true)
+				.callImmediate();
+			//Apply changes to sysctl.conf so that it persists beyond a reboot
+			execute("echo '" + variable + " = " + value + "' | sudo tee -a /etc/sysctl.conf > /dev/null")
+				.callImmediate();
+			//Reload sysctl
+			execute("sysctl -q -p /etc/sysctl.conf")
+				.setSudo(true)
+				.callImmediate();
 		});
+	}
+
+	public static String bashPrefix(String flag, String value)
+	{
+		if (value != null)
+			return " " + flag + " " + value + " ";
+		else
+			return "";
+	}
+
+	public static String bashPrefix(String flag)
+	{
+		return " " + flag + " ";
 	}
 
 	public interface Includable
@@ -591,7 +694,7 @@ public class Standard
 	 */
 	public static RemoteFileExistsParams remoteFileExists(final String path)
 	{
-		return chainForCb(new RemoteFileExistsParams(), (p) -> {
+		return chainForCb(new RemoteFileExistsParams(), p -> {
 			if (empty(p.getCompareLocalFile()) && empty(p.getCompareChecksum()))
 			{
 				execute("stat " + path)
@@ -599,14 +702,15 @@ public class Standard
 					.setTest((code, out, err) -> {
 						if (code == 0)
 						{
-							log("Remote file " + path + " exists.");
+							Logger.info("Remote file " + path + " exists.");
 							p.invokeTrueCallback();
 						}
 						else
 						{
 							p.invokeFalseCallback();
 						}
-					});
+					})
+					.callImmediate();
 			}
 			else
 			{
@@ -618,18 +722,23 @@ public class Standard
 							final Matcher matcher = CHECKSUM_PATTERN.matcher(out);
 							if (matcher.matches())
 							{
-								if (matcher.group(0).equals(getHash(p.getCompareLocalFile())))
+								if (matcher.group(0).equals(
+									Crypto.computeHash(SHA_256,
+										FileSystem.readFileToBytes(p.getCompareLocalFile()))))
 								{
-									log("Remote file checksum of " + matcher.group(0) + " matches checksum of local file " + p.getCompareLocalFile() + ".");
+									Logger.info("Remote file checksum of " + matcher.group(0) +
+										" matches checksum of local file " + p.getCompareLocalFile() + ".");
 									p.invokeTrueCallback();
 								}
 								else
 								{
-									log("Remote file checksum of " + matcher.group(0) + " did not match checksum of local file " + p.getCompareLocalFile() + ".");
+									Logger.info("Remote file checksum of " + matcher.group(0) +
+										" did not match checksum of local file " + p.getCompareLocalFile() + ".");
 									p.invokeFalseCallback();
 								}
 							}
-						});
+						})
+						.callImmediate();
 				}
 				if (p.getCompareChecksum() != null)
 				{
@@ -641,49 +750,24 @@ public class Standard
 							{
 								if (matcher.group(0).equals(p.getCompareChecksum()))
 								{
-									log("Remote file checksum " + matcher.group(0) + " matches expected checksum " + p.getCompareChecksum() + ".");
+									Logger.info("Remote file checksum " + matcher.group(0) + " matches expected checksum " + p.getCompareChecksum() + ".");
 									p.invokeTrueCallback();
 								}
 								else
 								{
-									log("Remote file checksum " + matcher.group(0) + " does not match expected checksum " + p.getCompareChecksum() + ".");
+									Logger.info("Remote file checksum " + matcher.group(0) + " does not match expected checksum " + p.getCompareChecksum() + ".");
 									p.invokeFalseCallback();
 								}
 							}
 							else
 							{
-								log("Unexpected problems reading remote file checksum.  Assuming remote file checksum does not match expected checksum " + p.getCompareChecksum() + ".");
+								Logger.info("Unexpected problems reading remote file checksum.  Assuming remote file checksum does not match expected checksum " + p.getCompareChecksum() + ".");
 								p.invokeFalseCallback();
 							}
-						});
+						})
+						.callImmediate();
 				}
 			}
 		});
-	}
-
-	private static String bytesToHexString(final byte[] bytes)
-	{
-		StringBuilder hexLine = new StringBuilder();
-		for (int i = 0; i < bytes.length; i++)
-		{
-			hexLine.append(String.format("%02X", bytes[i]));
-		}
-		return hexLine.toString();
-	}
-
-	private static String getHash(final String filename)
-	{
-		final MessageDigest digest;
-		try
-		{
-			digest = MessageDigest.getInstance("SHA-256");
-			digest.update(FileSystem.readFileToBytes(filename));
-			return bytesToHexString(digest.digest());
-		}
-		catch (NoSuchAlgorithmException e)
-		{
-			e.printStackTrace();
-			return "";
-		}
 	}
 }
