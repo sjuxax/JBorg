@@ -458,6 +458,13 @@ public class Standard
 		});
 	}
 
+public static Params hostfileEntry(final String hostname, final String ip)
+{
+	return chainForCb(new Params(), p -> {
+
+	});
+}
+
 
 	public static DeployParams deploy(final String appName)
 	{
