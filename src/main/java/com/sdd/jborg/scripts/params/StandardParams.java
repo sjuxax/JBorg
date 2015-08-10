@@ -35,12 +35,12 @@ public class StandardParams
 
 		public void setSudoAsUser(final String sudoer)
 		{
-			this.sudo = "sudo -i -u " + sudoer + " ";
+			this.sudo = "sudo -u " + sudoer + " ";
 		}
 
 		public void setSudo(final boolean sudo)
 		{
-			this.sudo = sudo ? "sudo -i " : "";
+			this.sudo = sudo ? "sudo " : "";
 		}
 	}
 
