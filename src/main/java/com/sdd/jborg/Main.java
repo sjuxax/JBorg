@@ -12,7 +12,7 @@ public class Main
 		switch (args[0].toLowerCase())
 		{
 			case "assemble":
-				//create();
+				create();
 				// flow through to assimilate
 			case "assimilate":
 				final Script script = Script.findMatch();
