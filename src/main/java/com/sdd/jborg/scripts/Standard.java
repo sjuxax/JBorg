@@ -94,7 +94,7 @@ public class Standard
 	public static String bashEscape(final String cmd)
 	{
 		final Matcher matcher = BASH_PATTERN.matcher(cmd);
-		return matcher.replaceAll("\\$1");
+		return matcher.replaceAll("$1");
 	}
 
 	public static void die(final Exception reason)
@@ -458,10 +458,51 @@ public class Standard
 		});
 	}
 
+	public static ReplaceLineInFileParams replaceLineInFile(String file, String find, String replace)
+	{
+		return chainForCb(new ReplaceLineInFileParams(), p ->
+		{
+			execute("grep " + bashEscape(find) + " " + file)
+				.setTest((code, out, err) -> {
+					if (code == 0)
+					{
+						Logger.info("Matching lines found, replacing...");
+						final String tempFile = tmpFile(file);
+						execute("sed " + "s/" + bashEscape(find) + ".*/" + replace + "/ " + bashEscape(file) + " | " + bashEscape(p.getSudoCmd() + "tee /tmp/remote-" + tempFile) + " > /dev/null 2>&1")
+							.setTest(((code1, out1, err1) -> {
+								if (code1 == 0)
+								{
+									execute("mv " + bashEscape("/tmp/remote-" + tempFile) + " " + bashEscape(file)).setTest((code2, out2, err2) -> {
+										if (code2 == 0)
+										{
+											Logger.err("FATAL ERROR: Unable to replace line");
+										}
+									})
+									.setSudoCmd(p.getSudoCmd())
+									.callImmediate();
+								}
+							}))
+						.setSudoCmd(p.getSudoCmd())
+						.callImmediate();
+					} else {
+						die(new DeveloperInputValidationException("Find string not found, nothing is being replaced."));
+					}
+				})
+			.setSudoCmd(p.getSudoCmd())
+			.callImmediate();
+		});
+	}
+
+	/**
+	 * Adds an entry to /etc/hosts, consolidating existing definitions
+	 * @param hostname
+	 * @param ip
+	 * @return
+	 */
 public static Params hostfileEntry(final String hostname, final String ip)
 {
 	return chainForCb(new Params(), p -> {
-
+		//
 	});
 }
 
