@@ -32,7 +32,6 @@ package com.sdd.jborg.cloud;
 //}
 
 import com.sdd.jborg.Logger;
-import com.sdd.jborg.networks.Networks;
 import com.sdd.jborg.scripts.Standard;
 import org.jclouds.ContextBuilder;
 import org.jclouds.compute.ComputeService;
@@ -63,12 +62,17 @@ public class Aws
 			.buildView(ComputeServiceContext.class)
 			.getComputeService();
 
-		final Template template = compute.templateBuilder()
-			.osFamily(OsFamily.UBUNTU)
-			.hardwareId(InstanceType.C4_LARGE)
-			.build();
+//		TemplateOptions ec2Options =
 
-		Logger.info(template.getLocation().getId());
+//		final Template template = compute.templateBuilder()
+//			.osFamily(OsFamily.UBUNTU)
+//			.hardwareId(InstanceType.C4_LARGE)
+//			.imageId("us-east-1/ami-9a562df2")
+//			.
+//			.build();
+
+
+//		Logger.info(template.getLocation().getId());
 
 		Logger.info(compute.toString());
 //		try{

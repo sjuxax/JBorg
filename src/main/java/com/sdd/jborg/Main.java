@@ -16,15 +16,19 @@ public class Main
 				// flow through to assimilate
 			case "assimilate":
 				final Script script = Script.findMatch();
+				if (script == null)
+				{
+					Logger.err("Unable to locate matching script.");
+					return;
+				}
 				script.assimilate(); // loop 1
 
-				Logger.setHost(networks.getSshHost());
-				ssh = new Ssh();
-				ssh.connect(
-					networks.getSshHost(),
-					networks.getSshPort(),
-					networks.getSshUser(),
-					networks.getSshKey()
+				Logger.setHost(server.getObject("ssh").getString("host"));
+				ssh = new Ssh().connect(
+					server.getObject("ssh").getString("host"),
+					server.getObject("ssh").getInteger("port"),
+					server.getObject("ssh").getString("user"),
+					server.getObject("ssh").getString("key")
 				);
 
 				go(); // loop 2

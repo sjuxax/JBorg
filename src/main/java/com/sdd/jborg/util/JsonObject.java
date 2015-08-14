@@ -4,6 +4,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.util.Iterator;
+
 public class JsonObject
 {
 	private final JSONObject jsonObject;
@@ -60,7 +62,7 @@ public class JsonObject
 			return new JsonObject(jsonObject.getJSONObject(key));
 		} catch (JSONException e) {
 			e.printStackTrace();
-			return null;
+			return new JsonObject();
 		}
 	}
 
@@ -69,11 +71,14 @@ public class JsonObject
 			return new JsonArray(jsonObject.getJSONArray(key));
 		} catch (JSONException e) {
 			e.printStackTrace();
-			return null;
+			return new JsonArray();
 		}
 	}
 
-	public JsonObject putString(final String key, final String value) {
+
+	// Setters
+
+	public JsonObject put(final String key, final Func0 value) {
 		try {
 			jsonObject.put(key, value);
 		} catch (JSONException e) {
@@ -82,11 +87,63 @@ public class JsonObject
 		return this;
 	}
 
-	public JsonObject putNumber(final String key, final int value) {
+	public JsonObject put(final String key, final JsonObject value) {
+		try {
+			jsonObject.put(key, value.jsonObject);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		return this;
+	}
+
+	public JsonObject put(final String key, final String value) {
 		try {
 			jsonObject.put(key, value);
 		} catch (JSONException e) {
 			e.printStackTrace();
+		}
+		return this;
+	}
+
+	public JsonObject put(final String key, final boolean value) {
+		try {
+			jsonObject.put(key, value);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		return this;
+	}
+
+	public JsonObject put(final String key, final int value) {
+		try {
+			jsonObject.put(key, value);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		return this;
+	}
+
+	public JsonObject putAll(final String key, final JsonObject o)
+	{
+		final Iterator<String> i = o.jsonObject.keys();
+		while (i.hasNext())
+		{
+			final String k = i.next();
+			try {
+				final Object value = o.jsonObject.get(k);
+				if (!jsonObject.has(key)) {
+					jsonObject.put(key, new JSONObject());
+				}
+				if (value.getClass().isArray())
+				{
+					jsonObject.getJSONObject(key).accumulate(k, value);
+				}
+				else {
+					jsonObject.getJSONObject(key).put(k, value);
+				}
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
 		}
 		return this;
 	}

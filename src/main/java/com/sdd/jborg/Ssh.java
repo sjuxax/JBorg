@@ -19,7 +19,7 @@ public class Ssh
 {
 	private SSHClient ssh;
 
-	public void connect(final String host, final int port, final String user, final String key)
+	public Ssh connect(final String host, final int port, final String user, final String key)
 	{
 		try
 		{
@@ -33,12 +33,7 @@ public class Ssh
 			{
 				ssh.authPublickey(user, System.getProperty("user.home") + File.separator + ".ssh" + File.separator + key);
 			}
-			catch (UserAuthException e)
-			{
-				e.printStackTrace();
-				close();
-			}
-			catch (TransportException e)
+			catch (UserAuthException | TransportException e)
 			{
 				e.printStackTrace();
 				close();
@@ -49,6 +44,7 @@ public class Ssh
 			e.printStackTrace();
 			close();
 		}
+		return this;
 	}
 
 	public interface CmdCallback

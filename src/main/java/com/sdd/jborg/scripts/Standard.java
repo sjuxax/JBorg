@@ -1,13 +1,12 @@
 package com.sdd.jborg.scripts;
 
-import com.sdd.jborg.CoffeeScript;
 import com.sdd.jborg.Logger;
-import com.sdd.jborg.networks.Networks;
 import com.sdd.jborg.Server;
 import com.sdd.jborg.Ssh;
 import com.sdd.jborg.util.Callback0;
 import com.sdd.jborg.util.Crypto;
 import com.sdd.jborg.util.FileSystem;
+import com.sdd.jborg.util.JsonObject;
 import groovy.text.StreamingTemplateEngine;
 import org.reflections.Reflections;
 
@@ -34,7 +33,8 @@ public class Standard
 	 */
 	public static abstract class Script
 	{
-		private static final Set<Class<? extends Script>> scripts = new Reflections().getSubTypesOf(Script.class);
+		// TODO: pass namespace in via config
+		private static final Set<Class<? extends Script>> scripts = new Reflections("com.wildworks.devops").getSubTypesOf(Script.class);
 
 		public static Script findMatch()
 		{
@@ -65,8 +65,7 @@ public class Standard
 
 	// Global Attributes
 
-	public static final Networks networks = new Networks(CoffeeScript.readCsonFileToJsonObject("networks.coffee"));
-	//public static final Networks networks = new Networks();
+	public static final JsonObject networks = new JsonObject();
 	public static final Server server = new Server(); // a.k.a. "locals"
 	public static Ssh ssh;
 
