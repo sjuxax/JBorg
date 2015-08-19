@@ -9,6 +9,9 @@ import us.monoid.web.Content;
 import us.monoid.web.JSONResource;
 import us.monoid.web.Resty;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 
 import static com.sdd.jborg.scripts.Standard.*;
@@ -20,7 +23,8 @@ public class OpenStack
 	private static JsonObject provider;
 	private static JsonObject datacenter;
 
-	private static JSONResource request(final String uri, final String content) {
+	private static JSONResource request(final String uri, final String content)
+	{
 		JSONResource data = null;
 		try
 		{
@@ -41,13 +45,44 @@ public class OpenStack
 				data = resty.json(url, new Content("application/json",
 					content.getBytes(StandardCharsets.UTF_8)));
 			}
-			Logger.stdout(data.object().toString().replaceAll("\\{", "{\n"));
+			try
+			{
+				Logger.stdout(data.object().toString().replaceAll("\\{", "{\n"));
+			}
+			catch (final us.monoid.json.JSONException e)
+			{
+				Logger.stdout("Response is not valid JSON. Response code: " +
+					data.http().getResponseCode() + "  " +
+					data.http().getResponseMessage() +
+					". Raw response:\n" + inputStreamToString(data.http().getInputStream())
+				);
+			}
 			return data;
 		}
 		catch (final Exception e)
 		{
 			e.printStackTrace();
 			return data;
+		}
+	}
+
+	private static String inputStreamToString(final InputStream in)
+	{
+		try
+		{
+			final BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+			final StringBuilder sb = new StringBuilder();
+			String str;
+			while ((str = r.readLine()) != null)
+			{
+				sb.append(str);
+			}
+			return sb.toString();
+		}
+		catch (final Exception e)
+		{
+			e.printStackTrace();
+			return null;
 		}
 	}
 
@@ -74,7 +109,8 @@ public class OpenStack
 		}
 	}
 
-	private static void getToken() {
+	private static void getToken()
+	{
 		final JSONResource data = post(":5000/v2.0/tokens",
 			"{\"auth\": {\"tenantName\": \"" +
 				provider.getString("project") + "\", \"passwordCredentials\": {\"username\": \"" +
@@ -100,17 +136,17 @@ public class OpenStack
 		// TODO: escape user input
 		final JSONResource data = post(":8774/v2/" + provider.getString("project_id") + "/servers", "{\n" +
 			"    \"server\": {\n" +
-			"        \"name\": \""+ name +"\",\n" +
-			"        \"imageRef\": \""+ datacenter.getString("os_image") +"\",\n" +
-			"        \"flavorRef\": \""+ datacenter.getString("os_flavor") +"\",\n" +
-			"        \"key_name\": \""+ datacenter.getString("os_key_name") +"\",\n" +
+			"        \"name\": \"" + name + "\",\n" +
+			"        \"imageRef\": \"" + datacenter.getString("os_image") + "\",\n" +
+			"        \"flavorRef\": \"" + datacenter.getString("os_flavor") + "\",\n" +
+			"        \"key_name\": \"" + datacenter.getString("os_key_name") + "\",\n" +
 			"        \"min_count\": \"1\",\n" +
 			"        \"max_count\": \"1\",\n" +
 			"        \"networks\": [\n" +
-			"          { \"uuid\": \""+ datacenter.getString("os_private_nic") +"\" }\n" +
+			"          { \"uuid\": \"" + datacenter.getString("os_private_nic") + "\" }\n" +
 			"        ],\n" +
-			"        \"security_groups\": [{ \"name\": \""+ datacenter.getString("os_security_group") +"\" } ],\n" +
-			"        \"availability_zone\": \""+ datacenter.getString("os_availability_zone") +"\"\n" +
+			"        \"security_groups\": [{ \"name\": \"" + datacenter.getString("os_security_group") + "\" } ],\n" +
+			"        \"availability_zone\": \"" + datacenter.getString("os_availability_zone") + "\"\n" +
 			"    }\n" +
 			"}");
 
@@ -118,7 +154,8 @@ public class OpenStack
 
 		final String ip = getAvailableIp();
 
-		if (ip == null) {
+		if (ip == null)
+		{
 			Main.die(new Exception("OpenStack reports no available public IPs."));
 		}
 
@@ -133,14 +170,17 @@ public class OpenStack
 		server.getObject("ssh").put("key", datacenter.getString("os_key_name"));
 	}
 
-	private static String getAvailableIp() {
+	private static String getAvailableIp()
+	{
 		try
 		{
 			final JSONResource data = get(":8774/v2/" + provider.getString("project_id") + "/os-floating-ips");
 			final JSONArray arr = (JSONArray) data.get("floating_ips");
-			for (int i = 0; i < arr.length(); i++) {
+			for (int i = 0; i < arr.length(); i++)
+			{
 				JSONObject floater = arr.getJSONObject(i);
-				if (floater.get("instance_id") == JSONObject.NULL) {
+				if (floater.get("instance_id") == JSONObject.NULL)
+				{
 					return floater.get("ip").toString();
 				}
 			}

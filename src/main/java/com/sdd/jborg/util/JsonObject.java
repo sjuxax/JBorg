@@ -23,6 +23,10 @@ public class JsonObject
 		this.jsonObject = j;
 	}
 
+	public Iterator<String> keys() {
+		return jsonObject.keys();
+	}
+
 	public JsonObject(final JSONObject jsonObject) {
 		this.jsonObject = jsonObject;
 	}
@@ -62,7 +66,9 @@ public class JsonObject
 			return new JsonObject(jsonObject.getJSONObject(key));
 		} catch (JSONException e) {
 //			e.printStackTrace();
-			return new JsonObject();
+			final JsonObject o = new JsonObject();
+			put(key, o);
+			return o;
 		}
 	}
 
@@ -71,7 +77,9 @@ public class JsonObject
 			return new JsonArray(jsonObject.getJSONArray(key));
 		} catch (JSONException e) {
 //			e.printStackTrace();
-			return new JsonArray();
+			final JsonArray a = new JsonArray();
+			jsonObject.put(key, a);
+			return a;
 		}
 	}
 

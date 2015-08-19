@@ -28,4 +28,12 @@ public final class Server
 
 		return this;
 	}
+
+	public String getHostname() {
+		return getString("datacenter") + "-" +
+			getString("env") + "-" +
+			getString("type") +
+			getString("instance") +
+			(getString("subproject") != null ? "-" + getString("subproject") : "");
+	}
 }

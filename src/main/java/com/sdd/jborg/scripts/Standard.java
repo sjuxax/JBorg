@@ -97,6 +97,16 @@ public class Standard
 		return matcher.replaceAll("$1");
 	}
 
+	public static void die(final String reason)
+	{
+		Main.die(new Exception(reason));
+	}
+
+	public static void die(final Exception reason)
+	{
+		Main.die(reason);
+	}
+
 	public static void notifySkip(final Exception reason)
 	{
 		Logger.err("Skipping. Reason: " + reason.getMessage());
@@ -183,7 +193,7 @@ public class Standard
 			}
 			catch (final DeveloperInputValidationException e)
 			{
-				Main.die(e);
+				die(e);
 			}
 		};
 		return p;
@@ -243,7 +253,7 @@ public class Standard
 					}
 					else
 					{
-						Main.die(new RemoteServerValidationException(error + " Tried " + p.getRetryTimes() + " times. Giving up."));
+						die(new RemoteServerValidationException(error + " Tried " + p.getRetryTimes() + " times. Giving up."));
 					}
 				}
 
@@ -397,7 +407,7 @@ public class Standard
 	{
 		try
 		{
-			cls.newInstance().include();
+			cls.newInstance().included();
 		}
 		catch (IllegalAccessException | InstantiationException e)
 		{
@@ -491,27 +501,13 @@ public class Standard
 						.setSudoCmd(p.getSudoCmd())
 						.callImmediate();
 					} else {
-						Main.die(new DeveloperInputValidationException("Find string not found, nothing is being replaced."));
+						die(new DeveloperInputValidationException("Find string not found, nothing is being replaced."));
 					}
 				})
 			.setSudoCmd(p.getSudoCmd())
 			.callImmediate();
 		});
 	}
-
-	/**
-	 * Adds an entry to /etc/hosts, consolidating existing definitions
-	 * @param hostname
-	 * @param ip
-	 * @return
-	 */
-public static Params hostfileEntry(final String hostname, final String ip)
-{
-	return chainForCb(new Params(), p -> {
-		//
-	});
-}
-
 
 	public static DeployParams deploy(final String appName)
 	{
@@ -545,6 +541,9 @@ public static Params hostfileEntry(final String hostname, final String ip)
 				.setMode("0600")
 				.setSudo(true)
 				.callImmediate();
+
+
+
 		});
 	}
 
@@ -646,7 +645,7 @@ public static Params hostfileEntry(final String hostname, final String ip)
 				"...");
 
 			ssh.put(path, p.getTo(), e -> {
-				Main.die(new RemoteServerValidationException("error during SFTP file transfer: " + e.getMessage()));
+				die(new RemoteServerValidationException("error during SFTP file transfer: " + e.getMessage()));
 			});
 
 			Logger.info("SFTP upload complete.");
@@ -732,7 +731,7 @@ public static Params hostfileEntry(final String hostname, final String ip)
 
 	public interface Includable
 	{
-		void include();
+		void included();
 	}
 
 	private static final Pattern CHECKSUM_PATTERN = Pattern.compile("/[a-f0-9]{64}/");
