@@ -35,7 +35,7 @@ public class JsonObject
 		try {
 			return jsonObject.getString(key);
 		} catch (JSONException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			return null;
 		}
 	}
@@ -44,7 +44,7 @@ public class JsonObject
 		try {
 			return jsonObject.getDouble(key);
 		} catch (JSONException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			return null;
 		}
 	}
@@ -61,7 +61,7 @@ public class JsonObject
 		try {
 			return new JsonObject(jsonObject.getJSONObject(key));
 		} catch (JSONException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			return new JsonObject();
 		}
 	}
@@ -70,7 +70,7 @@ public class JsonObject
 		try {
 			return new JsonArray(jsonObject.getJSONArray(key));
 		} catch (JSONException e) {
-			e.printStackTrace();
+//			e.printStackTrace();
 			return new JsonArray();
 		}
 	}

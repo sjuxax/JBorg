@@ -1,6 +1,7 @@
 package com.sdd.jborg.scripts;
 
 import com.sdd.jborg.Logger;
+import com.sdd.jborg.Main;
 import com.sdd.jborg.Server;
 import com.sdd.jborg.Ssh;
 import com.sdd.jborg.util.Callback0;
@@ -96,17 +97,23 @@ public class Standard
 		return matcher.replaceAll("$1");
 	}
 
-	public static void die(final Exception reason)
-	{
-		Logger.err("Aborting. Reason: " + reason.getMessage());
-		reason.printStackTrace();
-		System.exit(1);
-	}
-
 	public static void notifySkip(final Exception reason)
 	{
 		Logger.err("Skipping. Reason: " + reason.getMessage());
 		reason.printStackTrace();
+	}
+
+	public static void delay(final int ms, final String reason)
+	{
+		try
+		{
+			Logger.info("Waiting "+ ms + "ms "+ reason + "...");
+			Thread.sleep(ms);
+		}
+		catch (final InterruptedException e)
+		{
+			e.printStackTrace();
+		}
 	}
 
 	public static boolean empty(final String value)
@@ -176,7 +183,7 @@ public class Standard
 			}
 			catch (final DeveloperInputValidationException e)
 			{
-				die(e);
+				Main.die(e);
 			}
 		};
 		return p;
@@ -236,7 +243,7 @@ public class Standard
 					}
 					else
 					{
-						die(new RemoteServerValidationException(error + " Tried " + p.getRetryTimes() + " times. Giving up."));
+						Main.die(new RemoteServerValidationException(error + " Tried " + p.getRetryTimes() + " times. Giving up."));
 					}
 				}
 
@@ -484,7 +491,7 @@ public class Standard
 						.setSudoCmd(p.getSudoCmd())
 						.callImmediate();
 					} else {
-						die(new DeveloperInputValidationException("Find string not found, nothing is being replaced."));
+						Main.die(new DeveloperInputValidationException("Find string not found, nothing is being replaced."));
 					}
 				})
 			.setSudoCmd(p.getSudoCmd())
@@ -639,7 +646,7 @@ public static Params hostfileEntry(final String hostname, final String ip)
 				"...");
 
 			ssh.put(path, p.getTo(), e -> {
-				die(new RemoteServerValidationException("error during SFTP file transfer: " + e.getMessage()));
+				Main.die(new RemoteServerValidationException("error during SFTP file transfer: " + e.getMessage()));
 			});
 
 			Logger.info("SFTP upload complete.");

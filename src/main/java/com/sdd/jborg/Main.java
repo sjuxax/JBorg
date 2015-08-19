@@ -1,6 +1,8 @@
 package com.sdd.jborg;
 
 import com.sdd.jborg.cloud.Aws;
+import com.sdd.jborg.cloud.OpenStack;
+
 import static com.sdd.jborg.scripts.Standard.*;
 
 public class Main
@@ -9,20 +11,35 @@ public class Main
 	{
 		server.setFqdn(args[1]);
 
+		final Script script = Script.findMatch();
+		if (script == null)
+		{
+			Logger.err("Unable to locate matching script.");
+			return;
+		}
+		script.assimilate(); // loop 1
+
 		switch (args[0].toLowerCase())
 		{
 			case "assemble":
-				create();
-				// flow through to assimilate
-			case "assimilate":
-				final Script script = Script.findMatch();
-				if (script == null)
+				// TODO: lookup openstack datacenter params dynamically by server fqdn
+				final String provider = networks.getObject("datacenters").getObject("sbi-slc").getString("provider");
+				switch (provider)
 				{
-					Logger.err("Unable to locate matching script.");
-					return;
+					case "openstack":
+						OpenStack.create(server.getString("fqdn"));
+						break;
+					case "aws":
+						Aws.create(server.getString("fqdn"));
+						break;
+					default:
+						die(new Exception("Unsupported provider: "+ provider));
+						return;
 				}
-				script.assimilate(); // loop 1
 
+				// flow through to assimilate
+
+			case "assimilate":
 				Logger.setHost(server.getObject("ssh").getString("host"));
 				ssh = new Ssh().connect(
 					server.getObject("ssh").getString("host"),
@@ -38,8 +55,10 @@ public class Main
 		}
 	}
 
-	private static void create()
+	public static void die(final Exception reason)
 	{
-		Aws.create();
+		Logger.err("Aborting. Reason: " + reason.getMessage());
+		reason.printStackTrace();
+		System.exit(1);
 	}
 }

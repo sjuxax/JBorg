@@ -8,11 +8,10 @@ repositories {
 
 dependencies {
     compile 'net.schmizz:sshj:0.10.0'
-    compile 'com.amazonaws:aws-java-sdk:1.10.5.1'
     compile 'org.json:json:20141113'
     compile 'org.reflections:reflections:0.9.10'
     compile 'org.slf4j:slf4j-nop:1.7.12'
     compile 'org.codehaus.groovy:groovy-templates:2.4.4'
-    compile 'org.apache.jclouds:jclouds-all:1.9.1'
-    testCompile "junit:junit:4.12"
+    compile 'us.monoid.web:resty:0.3.2'
+    testCompile 'junit:junit:4.12'
 }

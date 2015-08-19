@@ -28,6 +28,7 @@ public class Ssh
 			// they will almost always be new to us here
 			ssh.addHostKeyVerifier(new PromiscuousVerifier());
 			//ssh.loadKnownHosts();
+			Logger.info("Connecting to remote host "+ host + ":" + port + "...");
 			ssh.connect(host, port);
 			try
 			{
