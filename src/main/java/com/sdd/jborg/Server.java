@@ -36,4 +36,11 @@ public final class Server
 			getString("instance") +
 			(getString("subproject") != null ? "-" + getString("subproject") : "");
 	}
+
+	public void putDefaults(final String key, final JsonObject value)
+	{
+//		put(key, value.putAll(
+//			new JsonObject(jsonObject.getJSONObject(key))
+//		));
+	}
 }

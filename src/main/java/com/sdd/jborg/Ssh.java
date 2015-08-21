@@ -72,15 +72,7 @@ public class Ssh
 			Logger.info("remote process exit code: " + code);
 			cb.call(code, stdOut, stdErr);
 		}
-		catch (ConnectionException e)
-		{
-			e.printStackTrace();
-		}
-		catch (TransportException e)
-		{
-			e.printStackTrace();
-		}
-		catch (IOException e)
+		catch (final IOException e)
 		{
 			e.printStackTrace();
 		}
@@ -93,11 +85,7 @@ public class Ssh
 					session.close();
 				}
 			}
-			catch (TransportException e)
-			{
-				e.printStackTrace();
-			}
-			catch (ConnectionException e)
+			catch (final TransportException | ConnectionException e)
 			{
 				e.printStackTrace();
 			}

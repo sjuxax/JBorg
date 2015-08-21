@@ -47,7 +47,7 @@ public class OpenStack
 			}
 			try
 			{
-				Logger.stdout(data.object().toString().replaceAll("\\{", "{\n"));
+				Logger.stdout(new JsonObject(data.object().toString()).toString(2));
 			}
 			catch (final us.monoid.json.JSONException e)
 			{
@@ -122,8 +122,6 @@ public class OpenStack
 
 	/**
 	 * Create a new instance at the cloud provider.
-	 *
-	 * @return ip address of newly created machine
 	 */
 	public static void create(final String name)
 	{
@@ -145,8 +143,8 @@ public class OpenStack
 			"        \"networks\": [\n" +
 			"          { \"uuid\": \"" + datacenter.getString("os_private_nic") + "\" }\n" +
 			"        ],\n" +
-			"        \"security_groups\": [{ \"name\": \"" + datacenter.getString("os_security_group") + "\" } ],\n" +
-			"        \"availability_zone\": \"" + datacenter.getString("os_availability_zone") + "\"\n" +
+			"        \"security_groups\": [{ \"name\": \"" + datacenter.getString("os_security_group") + "\" } ]\n" +
+//			"        ,\"availability_zone\": \"" + datacenter.getString("os_availability_zone") + "\"\n" +
 			"    }\n" +
 			"}");
 

@@ -8,7 +8,7 @@ import java.util.Iterator;
 
 public class JsonObject
 {
-	private final JSONObject jsonObject;
+	protected final JSONObject jsonObject;
 
 	public JsonObject(final String json) {
 		JSONObject j = new JSONObject();
@@ -32,7 +32,28 @@ public class JsonObject
 	}
 
 	public JsonObject() {
-		this.jsonObject = new JSONObject();
+		jsonObject = new JSONObject();
+	}
+
+	public boolean has(final String key)
+	{
+		return jsonObject.has(key);
+	}
+
+	public Object get(final String key)
+	{
+		try {
+			return jsonObject.get(key);
+		}
+		catch (final JSONException ignored)
+		{
+			return null;
+		}
+	}
+
+	public boolean getBoolean(final String key)
+	{
+		return jsonObject.getBoolean(key);
 	}
 
 	public String getString(final String key) {
@@ -86,6 +107,12 @@ public class JsonObject
 
 	// Setters
 
+	public JsonObject append(final String key, final JsonArray value)
+	{
+		jsonObject.append(key, value);
+		return this;
+	}
+
 	public JsonObject put(final String key, final Func0 value) {
 		try {
 			jsonObject.put(key, value);
@@ -98,6 +125,15 @@ public class JsonObject
 	public JsonObject put(final String key, final JsonObject value) {
 		try {
 			jsonObject.put(key, value.jsonObject);
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+		return this;
+	}
+
+	public JsonObject put(final String key, final JsonArray value) {
+		try {
+			jsonObject.put(key, value);
 		} catch (JSONException e) {
 			e.printStackTrace();
 		}
@@ -131,47 +167,60 @@ public class JsonObject
 		return this;
 	}
 
-	public JsonObject putAll(final String key, final JsonObject o)
+	public JsonObject put(final String key, final Object value) {
+		jsonObject.put(key, value);
+		return this;
+	}
+
+	public static void merge(final JsonObject ... objects)
 	{
-		final Iterator<String> i = o.jsonObject.keys();
-		while (i.hasNext())
+		final JsonObject last = objects[0];
+		for (int i=1; i<objects.length; i++)
 		{
-			final String k = i.next();
-			try {
-				final Object value = o.jsonObject.get(k);
-				if (!jsonObject.has(key)) {
-					jsonObject.put(key, new JSONObject());
-				}
-				if (value.getClass().isArray())
+			final JsonObject o = objects[i];
+			final Iterator<String> keyIterator = o.keys();
+			while (keyIterator.hasNext())
+			{
+				final String key = keyIterator.next();
+				final Object valueA = last.get(key);
+				final Object valueB = o.get(key);
+				if (valueA instanceof JSONObject &&
+					valueB instanceof JSONObject)
 				{
-					jsonObject.getJSONObject(key).accumulate(k, value);
+					merge(
+						new JsonObject((JSONObject) valueA),
+						new JsonObject((JSONObject) valueB)
+					);
 				}
+//				else if (valueA instanceof JsonArray &&
+//					valueB instanceof JsonArray)
+//				{
+//					((JsonArray) valueA).concat((JsonArray) valueB); // concatenate
+//				}
+//				else if (valueA instanceof JsonArray) {
+//					((JsonArray) valueA).put(valueB); // append
+//				}
 				else {
-					jsonObject.getJSONObject(key).put(k, value);
+					last.put(key, valueB); // override
 				}
-			} catch (JSONException e) {
-				e.printStackTrace();
 			}
 		}
-		return this;
 	}
 
 	public static class JsonArray {
 		private final JSONArray jsonArray;
 
-		public JsonArray() {
-			this.jsonArray = new JSONArray();
+		public JsonArray(final String ... values)
+		{
+			this();
+			for (final String value : values)
+			{
+				put(value);
+			}
 		}
 
-		public JsonArray(final String json) {
-			JSONArray j;
-			try {
-				j = new JSONArray(json);
-			} catch (JSONException e) {
-				e.printStackTrace();
-				j = new JSONArray();
-			}
-			this.jsonArray = j;
+		public JsonArray() {
+			this.jsonArray = new JSONArray();
 		}
 
 		public JsonArray(final JSONArray jsonArray) {
@@ -192,8 +241,44 @@ public class JsonObject
 			return this;
 		}
 
+		public JsonArray put(final Object value) {
+			jsonArray.put(value);
+			return this;
+		}
+
+		public JsonArray concat(final JsonArray values)
+		{
+			for (int i=0; i<values.length(); i++)
+			{
+				jsonArray.put(values.jsonArray.get(i));
+			}
+			return this;
+		}
+
 		public int length() {
 			return jsonArray.length();
 		}
+
+		@Override
+		public String toString()
+		{
+			return jsonArray.toString();
+		}
+
+		public String toString(final int indentFactor)
+		{
+			return jsonArray.toString(indentFactor);
+		}
+	}
+
+	@Override
+	public String toString()
+	{
+		return jsonObject.toString();
+	}
+
+	public String toString(final int indentFactor)
+	{
+		return jsonObject.toString(indentFactor);
 	}
 }

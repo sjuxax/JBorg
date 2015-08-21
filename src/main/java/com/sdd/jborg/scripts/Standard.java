@@ -457,7 +457,7 @@ public class Standard
 		});
 	}
 
-	public static Params update()
+	public static Params packageUpdate()
 	{
 		return chainForCb(new Params(), p -> {
 			execute("apt-get update")
@@ -494,13 +494,15 @@ public class Standard
 											Logger.err("FATAL ERROR: Unable to replace line");
 										}
 									})
-									.setSudoCmd(p.getSudoCmd())
-									.callImmediate();
+										.setSudoCmd(p.getSudoCmd())
+										.callImmediate();
 								}
 							}))
-						.setSudoCmd(p.getSudoCmd())
-						.callImmediate();
-					} else {
+							.setSudoCmd(p.getSudoCmd())
+							.callImmediate();
+					}
+					else
+					{
 						die(new DeveloperInputValidationException("Find string not found, nothing is being replaced."));
 					}
 				})
@@ -711,6 +713,30 @@ public class Standard
 				.callImmediate();
 			//Reload sysctl
 			execute("sysctl -q -p /etc/sysctl.conf")
+				.setSudo(true)
+				.callImmediate();
+		});
+	}
+
+	public static Params reboot()
+	{
+		return chainForCb(new Params(), params -> {
+			Logger.info("JBorg rebooting system now");
+			execute("reboot")
+				.setSudo(true)
+				.callImmediate();
+		});
+	}
+
+	public static Params setTimeZone()
+	{
+		return chainForCb(new Params(), params -> {
+			Logger.info("Setting time zone");
+			install("tzdata")
+				.callImmediate();
+			execute("echo " + server.getString("tz") + " | sudo tee /etc/timezone >/dev/null")
+				.callImmediate();
+			execute("dpkg-reconfigure -f noninteractive tzdata")
 				.setSudo(true)
 				.callImmediate();
 		});

@@ -23,7 +23,7 @@ public class FileSystem
 			final File file = new File(classLoader.getResource(path).getFile());
 			return Files.readAllBytes(file.toPath());
 		}
-		catch (Exception e)
+		catch (final Exception e)
 		{
 			System.err.println("Unable to load " + path + ". " + e.toString());
 			System.exit(1);

@@ -667,9 +667,10 @@ public class StandardParams
 			return purge;
 		}
 
-		public void setPurge(final boolean purge)
+		public UninstallParams setPurge(final boolean purge)
 		{
 			this.purge = purge;
+			return this;
 		}
 	}
 
@@ -905,7 +906,7 @@ public class StandardParams
 			return variables;
 		}
 
-		public TemplateParams setVariables(Map variables)
+		public TemplateParams setVariables(final Map variables)
 		{
 			this.variables = variables;
 			return this;
