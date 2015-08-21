@@ -37,10 +37,16 @@ public final class Server
 			(getString("subproject") != null ? "-" + getString("subproject") : "");
 	}
 
-	public void putDefaults(final String key, final JsonObject value)
+
+	public Server define(final String key, final JsonObject value)
 	{
-//		put(key, value.putAll(
-//			new JsonObject(jsonObject.getJSONObject(key))
-//		));
+		put(key, value);
+		return this;
+	}
+
+	public Server setDefault(final String key, final JsonObject value)
+	{
+		put(key, JsonObject.merge(value, getObject(key)));
+		return this;
 	}
 }
