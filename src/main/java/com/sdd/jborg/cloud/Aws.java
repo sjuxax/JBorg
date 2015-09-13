@@ -1,5 +1,7 @@
 package com.sdd.jborg.cloud;
 
+import static com.sdd.jborg.scripts.Standard.*;
+
 //import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 //import com.amazonaws.services.ec2.AmazonEC2Client;
 //import com.amazonaws.services.ec2.model.RunInstancesRequest;
@@ -51,8 +53,9 @@ import com.sdd.jborg.Logger;
 //import org.jclouds.location.reference.LocationConstants;
 
 public class Aws
+	implements Provider
 {
-	public static void create(final String name)
+	public void createVirtualMachine()
 	{
 //
 //		Logger.info("key " + System.getenv("AWS_ACCESS_KEY") + " code " + System.getenv("AWS_SECRET_KEY"));
@@ -81,6 +84,19 @@ public class Aws
 ////		catch(RunNodesException error) {
 ////			throw new IllegalStateException("Couldn't create instance", error);
 ////		}
+	}
 
+	private String keyName;
+
+	@Override
+	public String getKeyName()
+	{
+		return keyName;
+	}
+
+	public Aws setKeyName(String keyName)
+	{
+		this.keyName = keyName;
+		return this;
 	}
 }

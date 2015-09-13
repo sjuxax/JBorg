@@ -7,7 +7,7 @@ import com.sdd.jborg.Ssh;
 import com.sdd.jborg.util.Callback0;
 import com.sdd.jborg.util.Crypto;
 import com.sdd.jborg.util.FileSystem;
-import com.sdd.jborg.util.JsonObject;
+import com.sdd.jborg.util.Func1;
 import groovy.text.StreamingTemplateEngine;
 import org.reflections.Reflections;
 
@@ -63,12 +63,21 @@ public class Standard
 		abstract public void assimilate();
 	}
 
-
 	// Global Attributes
+	public interface Provider {
+		void createVirtualMachine();
+		String getKeyName();
+	}
 
-	public static final JsonObject networks = new JsonObject();
+	public interface Datacenter {
+		Provider getProvider();
+		String getTld();
+	}
+
 	public static final Server server = new Server(); // a.k.a. "locals"
 	public static Ssh ssh;
+	public static String tz;
+	public static boolean permitReboot = false;
 
 	// Async Flow Control
 
@@ -88,6 +97,16 @@ public class Standard
 	}
 
 	// Helpers
+
+	public static String mapConcat(final String[] s, Func1<String, String> cb)
+	{
+		final StringBuilder sb = new StringBuilder();
+		for (final String v : s)
+		{
+			sb.append(cb.call(v));
+		}
+		return sb.toString();
+	}
 
 	private static final Pattern BASH_PATTERN = Pattern.compile("([^0-9a-z-])", Pattern.CASE_INSENSITIVE);
 
@@ -212,6 +231,13 @@ public class Standard
 		{
 			return t;
 		}
+	}
+
+	public static Params log(final String msg)
+	{
+		return chainForCb(new Params(), p -> {
+			Logger.info(msg);
+		});
 	}
 
 	public static ExecuteParams execute(final String cmd)
@@ -734,7 +760,7 @@ public class Standard
 			Logger.info("Setting time zone");
 			install("tzdata")
 				.callImmediate();
-			execute("echo " + server.getString("tz") + " | sudo tee /etc/timezone >/dev/null")
+			execute("echo " + tz + " | sudo tee /etc/timezone >/dev/null")
 				.callImmediate();
 			execute("dpkg-reconfigure -f noninteractive tzdata")
 				.setSudo(true)

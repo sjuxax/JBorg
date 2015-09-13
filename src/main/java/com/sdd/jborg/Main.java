@@ -1,8 +1,5 @@
 package com.sdd.jborg;
 
-import com.sdd.jborg.cloud.Aws;
-import com.sdd.jborg.cloud.OpenStack;
-
 import static com.sdd.jborg.scripts.Standard.*;
 
 public class Main
@@ -22,30 +19,17 @@ public class Main
 		switch (args[0].toLowerCase())
 		{
 			case "assemble":
-				// TODO: lookup openstack datacenter params dynamically by server fqdn
-				final String provider = networks.getObject("datacenters").getObject("sbi-slc").getString("provider");
-				switch (provider)
-				{
-					case "openstack":
-						OpenStack.create(server.getString("fqdn"));
-						break;
-					case "aws":
-						Aws.create(server.getString("fqdn"));
-						break;
-					default:
-						die(new Exception("Unsupported provider: "+ provider));
-						return;
-				}
+				server.getDatacenter().getProvider().createVirtualMachine();
 
 				// flow through to assimilate
 
 			case "assimilate":
-				Logger.setHost(server.getObject("ssh").getString("host"));
+				Logger.setHost(server.ssh.host);
 				ssh = new Ssh().connect(
-					server.getObject("ssh").getString("host"),
-					server.getObject("ssh").getInteger("port"),
-					server.getObject("ssh").getString("user"),
-					server.getObject("ssh").getString("key")
+					server.ssh.host,
+					server.ssh.port,
+					server.ssh.user,
+					server.ssh.key
 				);
 
 				go(); // loop 2

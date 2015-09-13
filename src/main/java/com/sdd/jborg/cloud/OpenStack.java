@@ -17,13 +17,146 @@ import java.nio.charset.StandardCharsets;
 import static com.sdd.jborg.scripts.Standard.*;
 
 public class OpenStack
+	implements Provider
 {
 	private static final Resty resty = new Resty();
-	private static String token = null;
-	private static JsonObject provider;
-	private static JsonObject datacenter;
+	private String token;
+	private String host;
+	private String project;
+	private String user;
+	private String password;
+	private String projectId;
 
-	private static JSONResource request(final String uri, final String content)
+	public String getHost()
+	{
+		return host;
+	}
+
+	public OpenStack setHost(String host)
+	{
+		this.host = host;
+		return this;
+	}
+
+	public String getProject()
+	{
+		return project;
+	}
+
+	public OpenStack setProject(String project)
+	{
+		this.project = project;
+		return this;
+	}
+
+	public String getUser()
+	{
+		return user;
+	}
+
+	public OpenStack setUser(String user)
+	{
+		this.user = user;
+		return this;
+	}
+
+	public String getPassword()
+	{
+		return password;
+	}
+
+	public OpenStack setPassword(String password)
+	{
+		this.password = password;
+		return this;
+	}
+
+	public String getProjectId()
+	{
+		return projectId;
+	}
+
+	public OpenStack setProjectId(String projectId)
+	{
+		this.projectId = projectId;
+		return this;
+	}
+
+	private String name;
+	private String image;
+	private String flavor;
+	private String keyName;
+	private String privateNic;
+	private String securityGroup;
+
+	public String getName()
+	{
+		return name;
+	}
+
+	public OpenStack setName(String name)
+	{
+		this.name = name;
+		return this;
+	}
+
+	public String getImage()
+	{
+		return image;
+	}
+
+	public OpenStack setImage(String image)
+	{
+		this.image = image;
+		return this;
+	}
+
+	public String getFlavor()
+	{
+		return flavor;
+	}
+
+	public OpenStack setFlavor(String flavor)
+	{
+		this.flavor = flavor;
+		return this;
+	}
+
+	@Override
+	public String getKeyName()
+	{
+		return keyName;
+	}
+
+	public OpenStack setKeyName(String keyName)
+	{
+		this.keyName = keyName;
+		return this;
+	}
+
+	public String getPrivateNic()
+	{
+		return privateNic;
+	}
+
+	public OpenStack setPrivateNic(String privateNic)
+	{
+		this.privateNic = privateNic;
+		return this;
+	}
+
+	public String getSecurityGroup()
+	{
+		return securityGroup;
+	}
+
+	public OpenStack setSecurityGroup(String securityGroup)
+	{
+		this.securityGroup = securityGroup;
+		return this;
+	}
+
+	private JSONResource request(final String uri, final String content)
 	{
 		JSONResource data = null;
 		try
@@ -33,7 +166,7 @@ public class OpenStack
 				resty.withHeader("X-Auth-Token", token);
 			}
 
-			final String url = "http://" + provider.getString("host") + uri;
+			final String url = "http://" + host + uri;
 			if (content == null)
 			{
 				Logger.stdin("HTTP GET " + url);
@@ -86,12 +219,12 @@ public class OpenStack
 		}
 	}
 
-	private static JSONResource post(final String uri, final String content)
+	private JSONResource post(final String uri, final String content)
 	{
 		return request(uri, content);
 	}
 
-	private static JSONResource get(final String uri)
+	private JSONResource get(final String uri)
 	{
 		return request(uri, null);
 	}
@@ -109,13 +242,13 @@ public class OpenStack
 		}
 	}
 
-	private static void getToken()
+	private void getToken()
 	{
 		final JSONResource data = post(":5000/v2.0/tokens",
 			"{\"auth\": {\"tenantName\": \"" +
-				provider.getString("project") + "\", \"passwordCredentials\": {\"username\": \"" +
-				provider.getString("user") + "\", \"password\": \"" +
-				provider.getString("password") + "\"}}}");
+				project + "\", \"passwordCredentials\": {\"username\": \"" +
+				user + "\", \"password\": \"" +
+				password + "\"}}}");
 
 		token = getString(data, "access.token.id");
 	}
@@ -123,27 +256,23 @@ public class OpenStack
 	/**
 	 * Create a new instance at the cloud provider.
 	 */
-	public static void create(final String name)
+	public void createVirtualMachine()
 	{
-		// TODO: lookup openstack datacenter params dynamically by server fqdn
-		datacenter = networks.getObject("datacenters").getObject("sbi-slc");
-		provider = networks.getObject("providers").getObject("openstack");
-
 		getToken();
 
 		// TODO: escape user input
-		final JSONResource data = post(":8774/v2/" + provider.getString("project_id") + "/servers", "{\n" +
+		final JSONResource data = post(":8774/v2/" + projectId + "/servers", "{\n" +
 			"    \"server\": {\n" +
 			"        \"name\": \"" + name + "\",\n" +
-			"        \"imageRef\": \"" + datacenter.getString("os_image") + "\",\n" +
-			"        \"flavorRef\": \"" + datacenter.getString("os_flavor") + "\",\n" +
-			"        \"key_name\": \"" + datacenter.getString("os_key_name") + "\",\n" +
+			"        \"imageRef\": \"" + image + "\",\n" +
+			"        \"flavorRef\": \"" + flavor + "\",\n" +
+			"        \"key_name\": \"" + keyName + "\",\n" +
 			"        \"min_count\": \"1\",\n" +
 			"        \"max_count\": \"1\",\n" +
 			"        \"networks\": [\n" +
-			"          { \"uuid\": \"" + datacenter.getString("os_private_nic") + "\" }\n" +
+			"          { \"uuid\": \"" + privateNic + "\" }\n" +
 			"        ],\n" +
-			"        \"security_groups\": [{ \"name\": \"" + datacenter.getString("os_security_group") + "\" } ]\n" +
+			"        \"security_groups\": [{ \"name\": \"" + securityGroup + "\" } ]\n" +
 //			"        ,\"availability_zone\": \"" + datacenter.getString("os_availability_zone") + "\"\n" +
 			"    }\n" +
 			"}");
@@ -159,20 +288,20 @@ public class OpenStack
 
 		delay(30 * 1_000, "for instance to finish initializing");
 
-		post(":8774/v2/" + provider.getString("project_id") + "/servers/" + serverId + "/action",
+		post(":8774/v2/" + projectId + "/servers/" + serverId + "/action",
 			"{\"addFloatingIp\": {\"address\": \"" + ip + "\"}}");
 
-		server.getObject("ssh").put("host", ip);
-		server.getObject("ssh").put("port", 22);
-		server.getObject("ssh").put("user", "ubuntu");
-		server.getObject("ssh").put("key", datacenter.getString("os_key_name"));
+		server.ssh.host = ip;
+		server.ssh.port = 22;
+		server.ssh.user = "ubuntu";
+		server.ssh.key = keyName;
 	}
 
-	private static String getAvailableIp()
+	private String getAvailableIp()
 	{
 		try
 		{
-			final JSONResource data = get(":8774/v2/" + provider.getString("project_id") + "/os-floating-ips");
+			final JSONResource data = get(":8774/v2/" + projectId + "/os-floating-ips");
 			final JSONArray arr = (JSONArray) data.get("floating_ips");
 			for (int i = 0; i < arr.length(); i++)
 			{
