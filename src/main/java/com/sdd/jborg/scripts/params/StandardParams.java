@@ -3,6 +3,7 @@ package com.sdd.jborg.scripts.params;
 import com.sdd.jborg.Ssh;
 import com.sdd.jborg.util.Callback0;
 import com.sdd.jborg.scripts.Standard.RemoteServerValidationException;
+import com.sdd.jborg.util.Func0;
 import com.sdd.jborg.util.Func1;
 
 import java.util.Map;
@@ -57,6 +58,15 @@ public class StandardParams
 		private int retryTimes;
 		private Integer expectCode;
 		private boolean ignoreErrors = false;
+
+		private Func0<Boolean> onlyIfTestCb;
+		public ExecuteParams setOnlyIf(final Func0<Boolean> testCb) {
+			this.onlyIfTestCb = testCb;
+			return this;
+		}
+		public Func0<Boolean> getOnlyIfTestCb() {
+			return this.onlyIfTestCb;
+		}
 
 		public ExecuteParams setTest(final ScriptRemoteTestCallback1 testCb)
 		{

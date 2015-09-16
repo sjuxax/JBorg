@@ -87,12 +87,6 @@ public class Standard
 
 	private static Queue<Callback0> queue = new ArrayDeque<>();
 
-	public static void then(final ScriptCallback0 cb)
-	{
-		queue.add(chainForCb(new Params(), p ->
-			cb.call()).callback);
-	}
-
 	public static void then(final Params params)
 	{
 		queue.add(params.callback);
@@ -202,13 +196,6 @@ public class Standard
 		}
 	}
 
-	public interface ScriptCallback0
-	{
-		void call()
-			throws DeveloperInputValidationException,
-			RemoteServerValidationException;
-	}
-
 	public interface ScriptCallback1<T>
 	{
 		void call(final T t)
@@ -260,6 +247,10 @@ public class Standard
 	public static ExecuteParams execute(final String cmd)
 	{
 		return chainForCb(new ExecuteParams(), p -> {
+			if (p.getOnlyIfTestCb() != null && !p.getOnlyIfTestCb().call()) {
+				return; // skip
+			}
+
 			// TODO: could do this with simple while loop probably; would be less complex
 			final AtomicInteger triesRemaining = new AtomicInteger(p.getRetryTimes());
 			final Container<Callback0> _try = new Container<>();
