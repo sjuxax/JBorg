@@ -64,13 +64,17 @@ public class Standard
 	}
 
 	// Global Attributes
-	public interface Provider {
+	public interface Provider
+	{
 		void createVirtualMachine();
+
 		String getKeyName();
 	}
 
-	public interface Datacenter {
+	public interface Datacenter
+	{
 		Provider getProvider();
+
 		String getTld();
 	}
 
@@ -82,6 +86,12 @@ public class Standard
 	// Async Flow Control
 
 	private static Queue<Callback0> queue = new ArrayDeque<>();
+
+	public static void then(final ScriptCallback0 cb)
+	{
+		queue.add(chainForCb(new Params(), p ->
+			cb.call()).callback);
+	}
 
 	public static void then(final Params params)
 	{
@@ -136,7 +146,7 @@ public class Standard
 	{
 		try
 		{
-			Logger.info("Waiting "+ ms + "ms "+ reason + "...");
+			Logger.info("Waiting " + ms + "ms " + reason + "...");
 			Thread.sleep(ms);
 		}
 		catch (final InterruptedException e)
@@ -190,6 +200,13 @@ public class Standard
 		{
 			super(message);
 		}
+	}
+
+	public interface ScriptCallback0
+	{
+		void call()
+			throws DeveloperInputValidationException,
+			RemoteServerValidationException;
 	}
 
 	public interface ScriptCallback1<T>
@@ -287,7 +304,7 @@ public class Standard
 
 				if (!empty(p.getTest()))
 					p.getTest().call(code, out, err);
-			}));
+				}));
 
 			_try.get().call();
 		});
@@ -333,8 +350,11 @@ public class Standard
 		});
 	}
 
-	public static DirectoryParams directory(final String path)
+	private static String DIRECTORY_SEPARATOR = "/";
+
+	public static DirectoryParams directory(final String... paths)
 	{
+		final String path = String.join(DIRECTORY_SEPARATOR, paths);
 		return chainForCb(new DirectoryParams(), p -> {
 			if (empty(p.getMode()))
 				p.setMode("0755");
@@ -532,8 +552,8 @@ public class Standard
 						die(new DeveloperInputValidationException("Find string not found, nothing is being replaced."));
 					}
 				})
-			.setSudoCmd(p.getSudoCmd())
-			.callImmediate();
+				.setSudoCmd(p.getSudoCmd())
+				.callImmediate();
 		});
 	}
 
@@ -570,7 +590,7 @@ public class Standard
 				.setSudo(true)
 				.callImmediate();
 
-
+			// TODO: finish
 
 		});
 	}
@@ -583,7 +603,7 @@ public class Standard
 
 	/**
 	 * Compiles text output from strings or local files on disk when given a map of variables to fill in.
-	 *
+	 * <p>
 	 * Template engine syntax and details:
 	 * http://docs.groovy-lang.org/latest/html/documentation/template-engines.html#_streamingtemplateengine
 	 */
@@ -661,15 +681,15 @@ public class Standard
 			if (p.getFinalTo() == null)
 			{
 				p.setFinalTo(p.getTo());
-				p.setTo("/tmp/remote-"+ver);
+				p.setTo("/tmp/remote-" + ver);
 			}
 
 			// TODO: check if remote file exists
 
-			Logger.info("SFTP uploading "+ path.toFile().length() +" "+
+			Logger.info("SFTP uploading " + path.toFile().length() + " " +
 				(p.isEncrypted() ? "decrypted " : "") +
-				"bytes from \""+ path +"\" to \""+ p.getFinalTo() +"\" "+
-				(!p.getFinalTo().equals(p.getTo()) ? " through temporary file \""+ p.getTo() +"\"" : "") +
+				"bytes from \"" + path + "\" to \"" + p.getFinalTo() + "\" " +
+				(!p.getFinalTo().equals(p.getTo()) ? " through temporary file \"" + p.getTo() + "\"" : "") +
 				"...");
 
 			ssh.put(path, p.getTo(), e -> {
@@ -690,7 +710,7 @@ public class Standard
 				.callImmediate();
 
 			// move into final location
-			execute("mv " + p.getTo() +" "+ p.getFinalTo())
+			execute("mv " + p.getTo() + " " + p.getFinalTo())
 				.setSudoCmd(p.getSudoCmd())
 				.expect(0)
 				.callImmediate();
@@ -709,7 +729,8 @@ public class Standard
 				.setSudoCmd(p.getSudoCmd())
 				.callImmediate();
 
-			if (!empty(p.getOwner()) && !empty(p.getGroup())) {
+			if (!empty(p.getOwner()) && !empty(p.getGroup()))
+			{
 				chown(destination)
 					.setOwner(p.getOwner())
 					.setGroup(p.getGroup())
@@ -874,4 +895,25 @@ public class Standard
 			}
 		});
 	}
+
+	/*
+  # appends line only if no matching line is found
+  append_line_to_file: (file, [o]...) => @inject_flow =>
+    die "@append_line_to_file() unless_find: and append: are required. you passed: "+JSON.stringify(arguments) unless o?.unless_find and o?.append
+    @then @execute "grep #{bash_esc o.unless_find} #{bash_esc file}", _.merge o, test: ({code}) =>
+      if code is 0
+        @then @log "Matching line found, not appending"
+      else
+        @then @log "Matching line not found, appending..."
+        @then @execute "echo #{bash_esc o.append} | sudo tee -a #{bash_esc file}", _.merge o, test: ({code}) =>
+          @then @die "FATAL ERROR: unable to append line." unless code is 0
+	 */
+
+	public static AppendLineToFileUnlessMatchParams appendLineToFileUnlessMatch(final String path)
+	{
+		return chainForCb(new AppendLineToFileUnlessMatchParams(), p -> {
+
+		}
+	}
+
 }

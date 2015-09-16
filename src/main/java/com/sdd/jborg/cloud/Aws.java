@@ -99,4 +99,15 @@ public class Aws
 		this.keyName = keyName;
 		return this;
 	}
+
+	private boolean isUsingEbsVolume;
+	public boolean isUsingEbsVolume()
+	{
+		return isUsingEbsVolume;
+	}
+	public Aws setIsUsingEbsVolume(final boolean isUsingEbsVolume)
+	{
+		this.isUsingEbsVolume = isUsingEbsVolume;
+		return this;
+	}
 }
