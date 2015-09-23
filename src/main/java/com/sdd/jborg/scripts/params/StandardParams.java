@@ -455,6 +455,7 @@ public class StandardParams
 		private String groupName;
 		private String[] groups;
 		private String shell;
+		private Boolean systemUser = false;
 
 		public String getComment()
 		{
@@ -544,6 +545,17 @@ public class StandardParams
 		public UserParams setSudo(final boolean sudo)
 		{
 			sudoable.setSudo(sudo);
+			return this;
+		}
+
+		public Boolean isSystemUser()
+		{
+			return this.systemUser;
+		}
+
+		public UserParams setSystemUser(final boolean systemUser)
+		{
+			this.systemUser = systemUser;
 			return this;
 		}
 	}

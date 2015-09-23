@@ -393,6 +393,7 @@ public class Standard
 					execute("useradd " + name + " \\\n" +
 						"  --create-home \\\n" +
 						"  --user-group \\\n" +
+						(p.isSystemUser() ? " -r \\\n" : "") +
 						(!empty(p.getComment()) ? "  --comment " + bashEscape(p.getComment()) + " \\\n" : "") +
 						(!empty(p.getPassword()) ? "  --password " + bashEscape(p.getPassword()) + " \\\n" : "") +
 						("  --shell " + (empty(p.getShell()) ? "/bin/bash" : "")))
